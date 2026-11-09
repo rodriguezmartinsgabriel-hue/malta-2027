@@ -13,13 +13,13 @@ struct MaltaApp: App {
         WindowGroup {
             RootView()
                 .environment(store)
-                .tint(Theme.wine)
-                .background(Theme.bg)
+                .preferredColorScheme(.dark)
+                .tint(Theme.wineBright)
         }
     }
 }
 
-/// The six destinations of the app. Tab order mirrors the PWA.
+/// The six destinations of the app.
 enum TripTab: String, CaseIterable, Identifiable {
     case inicio, dinheiro, orcamento, roteiro, checklist, links
 
@@ -48,10 +48,9 @@ enum TripTab: String, CaseIterable, Identifiable {
     }
 }
 
-/// Root: one NavigationStack per destination, kept alive so drafts and scroll
-/// state survive tab switches. A system-styled translucent bar hosts the six
-/// destinations (UIKit collapses > 5 items into a "More" menu, so the bar is
-/// hand built to look exactly like the system one).
+/// Root: one stack per destination kept alive (drafts + scroll survive tab
+/// switches), a single liquid backdrop behind everything and a floating
+/// glass dock replacing the system bar (UIKit collapses > 5 items).
 struct RootView: View {
     @Environment(MaltaStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
@@ -59,6 +58,7 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
+            ScreenBackdrop()
             pane(.inicio) { HomeView() }
             pane(.dinheiro) { MoneyView() }
             pane(.orcamento) { BudgetView() }
@@ -67,8 +67,9 @@ struct RootView: View {
             pane(.links) { LinksView() }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            MaltaTabBar(tab: $tab)
+            MaltaDock(tab: $tab)
         }
+        .sensoryFeedback(.selection, trigger: tab)
         .onAppear {
             if let raw = ProcessInfo.processInfo.environment["MALTA_TAB"],
                let forced = TripTab(rawValue: raw) {
@@ -96,37 +97,51 @@ struct RootView: View {
     }
 }
 
-/// Bottom bar styled like the system one: translucent material, hairline top,
-/// filled glyph when selected. Glass sits here and only here, like iOS.
-struct MaltaTabBar: View {
+/// Floating glass dock, iOS 26 style: capsule island, glow pill on the
+/// active destination.
+struct MaltaDock: View {
     @Binding var tab: TripTab
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(TripTab.allCases) { t in
-                Button {
-                    guard tab != t else { return }
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { tab = t }
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: t.icon)
-                            .font(.system(size: 17, weight: tab == t ? .semibold : .regular))
-                        Text(t.title).font(.caption2)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(tab == t ? Theme.wine : Theme.muted)
+                dockButton(t)
             }
         }
-        .padding(.top, 8)
-        .padding(.bottom, 6)
-        .background(.regularMaterial)
-        .overlay(alignment: .top) {
-            Rectangle().fill(Theme.line.opacity(0.6)).frame(height: 0.5)
+        .padding(6)
+        .glass(corner: 30)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 2)
+    }
+
+    private func dockButton(_ t: TripTab) -> some View {
+        let active = tab == t
+        return Button {
+            guard tab != t else { return }
+            withAnimation(.snappy(duration: 0.28)) { tab = t }
+        } label: {
+            VStack(spacing: 2) {
+                Image(systemName: t.icon)
+                    .font(.system(size: 18, weight: active ? .semibold : .medium))
+                    .scaleEffect(active ? 1.08 : 1)
+                Text(t.title)
+                    .font(.system(size: 9.5, weight: active ? .semibold : .regular))
+            }
+            .foregroundStyle(active ? Theme.ink : Theme.muted)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .background {
+                if active {
+                    Capsule()
+                        .fill(Theme.wineFill)
+                        .overlay {
+                            Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 1)
+                        }
+                        .shadow(color: Theme.wine.opacity(0.55), radius: 8, y: 3)
+                }
+            }
+            .contentShape(Capsule())
         }
-        .ignoresSafeArea(edges: .bottom)
+        .buttonStyle(.plain)
     }
 }

@@ -1,57 +1,78 @@
 import SwiftUI
 import MaltaKit
 
-/// Aba Roteiro: data do embarque + 21 dias datados, titulo/nota editaveis.
+/// Aba Roteiro: cartao de embarque + 21 dias agrupados em semanas de vidro.
 struct ItineraryView: View {
     @Environment(MaltaStore.self) private var store
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    DatePicker("Data", selection: Binding(
-                        get: { Trip.date(fromISO: store.settings.start) },
-                        set: { d in
-                            let cal = Calendar.current
-                            let comp = cal.dateComponents([.year, .month, .day], from: d)
-                            store.settings.start = String(
-                                format: "%04d-%02d-%02d",
-                                comp.year ?? 2027, comp.month ?? 8, comp.day ?? 28)
-                        }),
-                        displayedComponents: [.date])
-                } header: {
-                    Text("Embarque")
-                } footer: {
-                    Note("Datas calculadas a partir do embarque. Titulos e notas sao sugestao inicial - editam quando quiser.")
+            MaltaScreen(title: "Roteiro") {
+                departureCard
+                ForEach(weekStarts, id: \.self) { start in
+                    weekCard(start: start)
                 }
-                daysSection
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
-            .navigationTitle("Roteiro")
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
-    private var daysSection: some View {
-        ForEach(weekStarts, id: \.self) { start in
-            Section("Semana \(start / 7 + 1)") {
-                ForEach(Array(store.itinerary.enumerated())
-                    .dropFirst(start)
-                    .prefix(7), id: \.element.id) { idx, day in
+    private var departureCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScreenLabel(text: "Embarque").padding(.top, 0)
+            HStack {
+                Image(systemName: "airplane.departure")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Theme.wineBright)
+                DatePicker("Data", selection: Binding(
+                    get: { Trip.date(fromISO: store.settings.start) },
+                    set: { d in
+                        let cal = Calendar.current
+                        let comp = cal.dateComponents([.year, .month, .day], from: d)
+                        store.settings.start = String(
+                            format: "%04d-%02d-%02d",
+                            comp.year ?? 2027, comp.month ?? 8, comp.day ?? 28)
+                    }),
+                    displayedComponents: [.date])
+                .labelsHidden()
+                .environment(\.locale, Locale(identifier: "pt_BR"))
+            }
+            Text("Datas calculadas a partir do embarque. Toque na data de um dia para marca-lo como pronto.")
+                .font(.footnote)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .glass()
+    }
+
+    private var weekStarts: [Int] {
+        stride(from: 0, to: max(store.itinerary.count, 1), by: 7).map { $0 }
+    }
+
+    private func weekCard(start: Int) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScreenLabel(text: "Semana \(start / 7 + 1)")
+            let days = Array(store.itinerary.enumerated())
+                .dropFirst(start)
+                .prefix(7)
+            VStack(spacing: 2) {
+                ForEach(Array(days), id: \.element.id) { idx, day in
                     DayRow(index: idx,
                            date: Trip.itineraryDate(startISO: store.settings.start, dayIndex: idx),
                            day: day,
                            onTitle: { store.itinerary[idx].title = $0 },
                            onNote: { store.itinerary[idx].note = $0 },
                            onDone: { store.itinerary[idx].done = $0 })
+                    if idx != (start + days.count - 1) {
+                        Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5)
+                            .padding(.vertical, 4)
+                    }
                 }
             }
-            .listRowBackground(Theme.paper)
         }
-    }
-
-    private var weekStarts: [Int] {
-        stride(from: 0, to: max(store.itinerary.count, 1), by: 7).map { $0 }
+        .padding(16)
+        .glass()
     }
 }
 
@@ -65,33 +86,30 @@ private struct DayRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            // Toque na data marca o dia como pronto (fila de viagem feita).
+            // Tap the date to mark the day ready (success feedback on done).
             Button {
                 onDone(!day.done)
             } label: {
                 VStack(spacing: 1) {
                     Text(Trip.dayMonthLabel(for: date))
-                        .font(Fonts.display(20))
-                        .foregroundStyle(day.done ? Theme.olive : Theme.wine)
+                        .font(Fonts.display(19))
+                        .foregroundStyle(day.done ? Theme.oliveBright : Theme.ink)
+                        .strikethrough(day.done, color: Theme.oliveBright)
                     Text(Trip.weekdayLabel(for: date))
                         .font(.caption2)
                         .foregroundStyle(Theme.muted)
-                    if day.done {
-                        Image(systemName: "checkmark")
-                            .font(.caption2)
-                            .foregroundStyle(Theme.olive)
-                    }
                 }
-                .frame(width: 54)
+                .frame(width: 56)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text("DIA \(index + 1)")
                     .font(.caption2)
-                    .foregroundStyle(Theme.olive)
-                TextField("", text: Binding(
+                    .foregroundStyle(day.done ? Theme.oliveBright : Theme.muted)
+                    .tracking(0.8)
+                TextField("Sugestao do dia...", text: Binding(
                     get: { day.title },
                     set: { onTitle($0) }
                 ))
@@ -110,6 +128,9 @@ private struct DayRow: View {
                 .textFieldStyle(.plain)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
+        .sensoryFeedback(.success, trigger: day.done) { _, _ in
+            day.done
+        }
     }
 }

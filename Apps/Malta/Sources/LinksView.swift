@@ -2,75 +2,99 @@ import SwiftUI
 import MaltaKit
 import UIKit
 
-/// Aba Links: nos de emergencia e links uteis, em linhas nativas.
+/// Aba Links: uteis em cartoes de vidro + emergencia com numero 112 grande.
 struct LinksView: View {
     var body: some View {
         NavigationStack {
-            List {
-                usefulSection
-                emergencySection
+            MaltaScreen(title: "Links") {
+                usefulCard
+                emergencyCard
+                footerNote
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
-            .navigationTitle("Links")
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
-    private var usefulSection: some View {
-        Section("Uteis") {
-            ForEach(usefulLinks) { link in
-                Button {
-                    if let url = URL(string: link.url) {
-                        UIApplication.shared.open(url)
-                    }
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(link.title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Theme.ink)
-                            Text(link.subtitle)
-                                .font(.caption2)
-                                .foregroundStyle(Theme.muted)
-                                .lineLimit(2)
+    private var usefulCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScreenLabel(text: "Uteis")
+            VStack(spacing: 0) {
+                ForEach(usefulLinks) { link in
+                    Button {
+                        if let url = URL(string: link.url) {
+                            UIApplication.shared.open(url)
                         }
-                        Spacer()
-                        Image(systemName: "arrow.up.right")
-                            .font(.footnote.weight(.medium))
-                            .foregroundStyle(Theme.wine)
+                    } label: {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(link.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Theme.ink)
+                                Text(link.subtitle)
+                                    .font(.caption2)
+                                    .foregroundStyle(Theme.muted)
+                                    .lineLimit(2)
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(Theme.wineBright)
+                        }
+                        .contentShape(Rectangle())
+                        .padding(.vertical, 8)
                     }
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    if link.id != usefulLinks.last?.id {
+                        Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5)
+                    }
                 }
-                .buttonStyle(.plain)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .glass()
         }
-        .listRowBackground(Theme.paper)
     }
 
-    private var emergencySection: some View {
-        Section {
+    private var emergencyCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScreenLabel(text: "Emergencia")
             Button {
                 if let url = URL(string: "tel://112") {
                     UIApplication.shared.open(url)
                 }
             } label: {
-                HStack {
+                HStack(alignment: .center) {
                     Text("112")
-                        .font(Fonts.display(28))
-                        .foregroundStyle(Theme.ink)
+                        .font(Fonts.display(44))
+                        .foregroundStyle(Theme.cream)
+                        .shadow(color: Theme.wine.opacity(0.5), radius: 12, y: 2)
                     Spacer()
                     Text("Numero unico de emergencia na UE")
-                        .font(.caption)
-                        .foregroundStyle(Theme.muted)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.cream.opacity(0.8))
                         .multilineTextAlignment(.trailing)
                 }
+                .padding(18)
+                .background {
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(Theme.wineFill)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+                        }
+                        .shadow(color: Theme.wine.opacity(0.55), radius: 24, y: 12)
+                }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-        } header: {
-            Text("Emergencia")
-        } footer: {
-            Note("Consulado do Itamaraty acreditado em Malta fica em Roma - confirmar antes da viagem. Guarde copia digital dos passaportes.")
         }
-        .listRowBackground(Theme.paper)
+    }
+
+    private var footerNote: some View {
+        Text("Consulado do Itamaraty acreditado em Malta fica em Roma - confirmar antes da viagem. Guarde copia digital dos passaportes.")
+            .font(.footnote)
+            .foregroundStyle(Theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 6)
     }
 }

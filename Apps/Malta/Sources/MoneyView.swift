@@ -1,7 +1,7 @@
 import SwiftUI
 import MaltaKit
 
-/// Aba Dinheiro: conversor R$ -> EUR por caminho, comparacao de contas e taxas.
+/// Aba Dinheiro: cotacao (manual + ao vivo), conversor, contas e taxas.
 struct MoneyView: View {
     @Environment(MaltaStore.self) private var store
     @State private var brlTx = "10.000"
@@ -11,144 +11,14 @@ struct MoneyView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                rateSection
-                converterSection
-                accountSection
-                recommendationSection
-                taxSection
+            MaltaScreen(title: "Dinheiro") {
+                rateCard
+                converterCard
+                accountsContent
+                taxContent
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
-            .navigationTitle("Dinheiro")
+            .toolbar(.hidden, for: .navigationBar)
         }
-    }
-
-    /// Cotacao (manual + ao vivo) mora aqui, junto de quem a usa: o conversor.
-    private var rateSection: some View {
-        Section {
-            RowField("Cotacao manual", text: $fxTx)
-            Toggle(isOn: Binding(
-                get: { store.useLiveFX },
-                set: { on in
-                    store.setUseLiveFX(on)
-                    Task { await store.refreshLiveFX() }
-                })) {
-                Text("Cotacao ao vivo")
-            }
-        } header: {
-            Text("Cotacao")
-        } footer: {
-            Note(rateNote)
-        }
-        .onAppear {
-            guard !fxSeeded else { return }
-            fxSeeded = true
-            fxTx = String(format: "%.2f", store.settings.manualFx)
-                .replacingOccurrences(of: ".", with: ",")
-        }
-        .onChange(of: fxTx) { _, v in
-            let manual = Money.parse(v) ?? 0
-            store.settings.manualFx = manual > 1 ? manual : TripSettings.defaultFx
-        }
-    }
-
-    private var rateNote: String {
-        guard store.useLiveFX else {
-            return "Cotacao manual em uso (EUR " + Money.brNumber(store.settings.manualFx) +
-                "). Ligue ao vivo para buscar de open.er-api.com."
-        }
-        if let q = store.liveQuote,
-           Date().timeIntervalSince(q.fetchedAt) < 60 * 60 * 36 {
-            return "Ao vivo: open.er-api.com, EUR 1 = R$ " + Money.brNumber(store.fx) +
-                " (atualizada " + stamp(q) + ")."
-        }
-        return "Sem cotacao ao vivo agora - usando a ultima conhecida ou a manual."
-    }
-
-    private var converterSection: some View {
-        Section {
-            RowField("Reais (R$)", text: $brlTx)
-            presetRow
-            HStack(alignment: .firstTextBaseline) {
-                Text("Voce recebe")
-                Spacer(minLength: 12)
-                Text(convEur)
-                    .font(Fonts.display(30))
-                    .foregroundStyle(Theme.wine)
-            }
-        } header: {
-            Text("Converter")
-        } footer: {
-            Note(convCost)
-        }
-        .listRowBackground(Theme.paper)
-    }
-
-    private var presetRow: some View {
-        Menu {
-            ForEach(Array(Seeds.presets.enumerated()), id: \.offset) { idx, p in
-                Button(p.name) { presetIdx = idx }
-            }
-        } label: {
-            HStack {
-                Text("Caminho")
-                Spacer(minLength: 12)
-                Text(Seeds.presets[presetIdx].name)
-                    .foregroundStyle(Theme.muted)
-                Image(systemName: "chevron.down")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.muted)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var accountSection: some View {
-        Section("Onde abrir") {
-            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 10) {
-                GridRow {
-                    Text("CONTA").gridCellColumns(1)
-                    Text("EUR")
-                    Text("CUSTO*")
-                    Text("ABERTURA")
-                }
-                .font(.caption2.monospaced())
-                .foregroundStyle(Theme.muted)
-                ForEach(accountRows) { row in
-                    GridRow {
-                        Text(row.name).gridCellColumns(1)
-                        Text(row.eur)
-                        Text(row.cost)
-                        Text(row.opening)
-                    }
-                    .font(.footnote)
-                }
-            }
-            Note("* custo medio por operacao. O FGC brasileiro nao cobre contas em EUR/USD.")
-                .listRowSeparator(.hidden)
-        }
-        .listRowBackground(Theme.paper)
-    }
-
-    private var recommendationSection: some View {
-        Section("Recomendado para as duas") {
-            Text(moneyRecommendation)
-                .font(.footnote)
-                .foregroundStyle(Theme.ink)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .listRowBackground(Theme.paper)
-    }
-
-    private var taxSection: some View {
-        Section("Taxas de cambio") {
-            LabeledRow(label: "IOF no cambio", value: "3,5%")
-            LabeledRow(label: "Via investimento", value: "1,1%")
-            LabeledRow(label: "FGC em EUR/USD", value: "Nao existe")
-        }
-        .listRowBackground(Theme.paper)
     }
 
     private var amount: Double {
@@ -167,34 +37,159 @@ struct MoneyView: View {
             " em impostos e spread."
     }
 
+    // MARK: - Cards
+
+    private var rateCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                ScreenLabel(text: "Cotacao").padding(.top, 0)
+                Spacer()
+                Text("EUR 1 = R$ " + Money.brNumber(store.fx))
+                    .font(Fonts.mono(13))
+                    .foregroundStyle(store.fxSourceIsLive ? Theme.oliveBright : Theme.muted)
+            }
+            RowField("Cotacao manual", text: $fxTx)
+            Toggle(isOn: Binding(
+                get: { store.useLiveFX },
+                set: { on in
+                    store.setUseLiveFX(on)
+                    Task { await store.refreshLiveFX() }
+                })) {
+                Text("Cotacao ao vivo")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.ink)
+            }
+            .tint(Theme.wineBright)
+            Text(rateNote)
+                .font(.footnote)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .glass()
+        .onAppear {
+            guard !fxSeeded else { return }
+            fxSeeded = true
+            fxTx = String(format: "%.2f", store.settings.manualFx)
+                .replacingOccurrences(of: ".", with: ",")
+        }
+        .onChange(of: fxTx) { _, v in
+            let manual = Money.parse(v) ?? 0
+            store.settings.manualFx = manual > 1 ? manual : TripSettings.defaultFx
+        }
+    }
+
+    private var rateNote: String {
+        guard store.useLiveFX else {
+            return "Manual em uso. Ligue ao vivo para buscar de open.er-api.com."
+        }
+        if let q = store.liveQuote,
+           Date().timeIntervalSince(q.fetchedAt) < 60 * 60 * 36 {
+            return "Ao vivo: open.er-api.com, atualizada " + stamp(q) + "."
+        }
+        return "Sem cotacao ao vivo agora - usando a ultima conocida ou a manual."
+    }
+
+    private var converterCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ScreenLabel(text: "Converter")
+            RowField("Reais (R$)", text: $brlTx)
+            Menu {
+                ForEach(Array(Seeds.presets.enumerated()), id: \.offset) { idx, p in
+                    Button(p.name) { presetIdx = idx }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Text(Seeds.presets[presetIdx].name)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.muted)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(.white.opacity(0.10)))
+            }
+            .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Voce recebe")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.muted)
+                Text(convEur)
+                    .font(Fonts.display(40))
+                    .foregroundStyle(Theme.oliveBright)
+                    .shadow(color: Theme.oliveBright.opacity(0.35), radius: 14, y: 1)
+            }
+            .padding(.top, 2)
+            Text(convCost)
+                .font(.footnote)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(18)
+        .glass()
+    }
+
+    private var accountsContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScreenLabel(text: "Onde abrir")
+            VStack(spacing: 12) {
+                ForEach(accountRows) { row in
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(row.name)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.ink)
+                            Text(row.eur)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.muted)
+                        }
+                        Spacer()
+                        Text(row.cost)
+                            .font(Fonts.mono(13))
+                            .foregroundStyle(Theme.wineBright)
+                    }
+                    .padding(.vertical, 3)
+                    if row.id != accountRows.last?.id {
+                        Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5)
+                    }
+                }
+            }
+            .padding(16)
+            .glass()
+        }
+    }
+
+    private var taxContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScreenLabel(text: "Taxas de cambio")
+            VStack(spacing: 10) {
+                taxRow(label: "IOF no cambio", value: "3,5%")
+                taxRow(label: "Via investimento", value: "1,1%")
+                taxRow(label: "FGC em EUR/USD", value: "Nao existe")
+            }
+            .padding(16)
+            .glass()
+        }
+    }
+
+    private func taxRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label).font(.subheadline).foregroundStyle(Theme.muted)
+            Spacer()
+            Text(value)
+                .font(Fonts.mono(14))
+                .foregroundStyle(Theme.ink)
+        }
+    }
+
     private func stamp(_ q: FXQuote) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "pt_BR")
         f.dateFormat = "dd/MM HH'h'"
         return f.string(from: q.fetchedAt)
-    }
-}
-
-private struct LabeledRow: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        HStack {
-            Text(label)
-            Spacer()
-            Text(value)
-                .foregroundStyle(Theme.muted)
-        }
-    }
-}
-
-/// Inline footer with the conversion cost, shared with the converter section.
-/// Reference from Content.swift (global in MaltaKit).
-private let accountRows = MaltaKit.accountRows
-
-extension Double {
-    func rounded2() -> Double {
-        (self * 100).rounded() / 100
     }
 }

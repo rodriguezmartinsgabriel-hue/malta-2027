@@ -1,7 +1,8 @@
 import SwiftUI
 import MaltaKit
 
-/// Aba Orcamento: quem pagou o que, consumo 50/50 e acerto automatico.
+/// Aba Orcamento: acerto automatico em bloco solido, resumo, registro de
+/// gastos e lista em vidro.
 struct BudgetView: View {
     @Environment(MaltaStore.self) private var store
     @State private var descTx = ""
@@ -11,61 +12,90 @@ struct BudgetView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                settleSection
-                summarySection
-                addSection
-                expenseSection
+            MaltaScreen(title: "Orcamento") {
+                settleCard
+                summaryCard
+                addCard
+                expenseContent
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
-            .navigationTitle("Orcamento")
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
-    /// The one solid-brand block: the automatic settlement.
-    private var settleSection: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 4) {
-                switch store.settlement.statement {
-                case .none:
-                    Text("Quitado")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Theme.creamOnInk)
-                    Text("ninguem deve nada")
-                        .font(.callout)
-                        .foregroundStyle(Theme.mutedOnInk)
-                case .some(let s):
-                    Text(s.debtor + " deve " + Money.eur(s.amount.rounded2()))
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Theme.creamOnInk)
-                    Text("para equilibrar com a " +
-                         (s.debtor == "Dani" ? "Nana" : "Dani"))
-                        .font(.callout)
-                        .foregroundStyle(Theme.mutedOnInk)
+    private var settleCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    switch store.settlement.statement {
+                    case .none:
+                        Text("Quitado")
+                            .font(Fonts.display(30))
+                            .foregroundStyle(Theme.cream)
+                    case .some(let s):
+                        Text(s.debtor + " deve")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.cream.opacity(0.85))
+                            .padding(.top, 2)
+                        Text("EUR " + Money.brNumber(s.amount.rounded2()))
+                            .font(Fonts.display(34))
+                            .foregroundStyle(Theme.cream)
+                    }
                 }
+                Spacer()
+                Image(systemName: store.settlement.statement == nil ? "checkmark.circle.fill" : "banknote.fill")
+                    .font(.system(size: 26, weight: .medium))
+                    .foregroundStyle(Theme.cream.opacity(0.85))
+                    .padding(.top, 4)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 6)
+            Text(subtitle)
+                .font(.footnote)
+                .foregroundStyle(Theme.cream.opacity(0.75))
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .listRowBackground(Theme.wine)
+        .padding(20)
+        .background {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Theme.wineFill)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+                }
+                .shadow(color: Theme.wine.opacity(0.6), radius: 26, y: 14)
+        }
     }
 
-    private var summarySection: some View {
-        Section("Resumo") {
-            LabeledRow(label: "Total gasto",
-                       value: Money.eur(store.settlement.total.rounded2()))
-            LabeledRow(label: "Cada uma consumiu",
+    private var subtitle: String {
+        switch store.settlement.statement {
+        case .none: return "ninguem deve nada"
+        case .some(let s):
+            return "para equilibrar com a " + (s.debtor == "Dani" ? "Nana" : "Dani")
+        }
+    }
+
+    private var summaryCard: some View {
+        VStack(spacing: 10) {
+            summaryRow(label: "Total gasto", value: Money.eur(store.settlement.total.rounded2()))
+            summaryRow(label: "Cada uma consumiu",
                        value: Money.eur(store.settlement.eachConsumed.rounded2()))
         }
-        .listRowBackground(Theme.paper)
+        .padding(16)
+        .glass()
     }
 
-    private var addSection: some View {
-        Section("Novo gasto") {
+    private var addCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ScreenLabel(text: "Novo gasto").padding(.top, 0)
             TextField("Descricao - jantar, ferry, hospedagem...", text: $descTx)
+                .font(.subheadline)
+                .foregroundStyle(Theme.ink)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.sentences)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(.white.opacity(0.07))
+                }
             RowField("Valor (EUR)", text: $eurTx)
             Picker("Pagou", selection: $payer) {
                 Text("Nana").tag(Expense.Payer.nana)
@@ -73,30 +103,59 @@ struct BudgetView: View {
                 Text("50/50").tag(Expense.Payer.ambas)
             }
             .pickerStyle(.segmented)
-            Button("Adicionar gasto") {
-                addExpense()
-            }
+            joinButton
         }
-        .listRowBackground(Theme.paper)
+        .padding(16)
+        .glass()
     }
 
-    private var expenseSection: some View {
-        Section("Gastos") {
+    /// Capsule filled action button.
+    private var joinButton: some View {
+        Button {
+            addExpense()
+        } label: {
+            Text("Adicionar gasto")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.cream)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(Capsule().fill(Theme.wineFill))
+                .shadow(color: Theme.wine.opacity(0.45), radius: 10, y: 4)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var expenseContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScreenLabel(text: "Gastos")
             if store.expenses.isEmpty {
-                Note("Nenhum gasto ainda. Comecem pelo aporte: transferencias, reservas e compras. " +
-                     "Ative o sync (icone no topo do Inicio) para ficar igual nos dois aparelhos.")
-                    .listRowSeparator(.hidden)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Nenhum gasto ainda.")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.ink)
+                    Text("Comecem pelo aporte: transferencias, reservas e compras. Ative o sync (icone no topo do Inicio) para ficar igual nos dois aparelhos.")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(16)
+                .glass()
             } else {
-                ForEach(store.expenses.reversed()) { e in
-                    ExpenseRow(expense: e)
+                VStack(spacing: 0) {
+                    ForEach(store.expenses.reversed()) { e in
+                        ExpenseRow(expense: e) {
+                            store.removeExpense(id: e.id)
+                        }
+                        if e.id != store.expenses.first?.id {
+                            Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5)
+                                .padding(.vertical, 6)
+                        }
+                    }
                 }
-                .onDelete { offsets in
-                    let ids = offsets.map { store.expenses.reversed()[$0].id }
-                    for id in ids { store.removeExpense(id: id) }
-                }
+                .padding(16)
+                .glass()
             }
         }
-        .listRowBackground(Theme.paper)
     }
 
     private func addExpense() {
@@ -108,24 +167,21 @@ struct BudgetView: View {
         eurTx = ""
         eurFocused = false
     }
-}
 
-private struct LabeledRow: View {
-    let label: String
-    let value: String
-
-    var body: some View {
+    private func summaryRow(label: String, value: String) -> some View {
         HStack {
-            Text(label)
+            Text(label).font(.subheadline).foregroundStyle(Theme.muted)
             Spacer()
             Text(value)
-                .foregroundStyle(Theme.muted)
+                .font(Fonts.mono(14))
+                .foregroundStyle(Theme.ink)
         }
     }
 }
 
 struct ExpenseRow: View {
     let expense: Expense
+    let onRemove: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -140,10 +196,17 @@ struct ExpenseRow: View {
             }
             Spacer()
             Text(Money.eur(expense.eur.rounded2()))
-                .font(.callout.monospacedDigit())
+                .font(Fonts.mono(14))
                 .foregroundStyle(Theme.ink)
+            Button(action: onRemove) {
+                Image(systemName: "xmark")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.muted)
+                    .padding(6)
+                    .background(Circle().fill(.white.opacity(0.09)))
+            }
+            .buttonStyle(.plain)
         }
-        .padding(.vertical, 4)
     }
 
     private var who: String {

@@ -1,22 +1,25 @@
 import SwiftUI
 
-/// Malta 2027 design tokens. Native iOS first: system fonts, system controls and
-/// system layout carry the app. Brand colors appear only in accents and the home
-/// hero; typography hierarchy comes from the system text styles.
+/// Malta 2027 - Liquid Glass design (iOS 26/27 dialect on iOS 17 APIs).
+/// Dark layered backdrop with brand halos, floating glass cards, serif numerals.
 public enum Theme {
-    public static let bg = Color(hex: 0xF6F3EA)       // warm app background
-    public static let paper = Color(hex: 0xFFFEF9)    // list row background
-    public static let ink = Color(hex: 0x241F1C)      // primary text
-    public static let muted = Color(hex: 0x7B7466)    // secondary text
-    public static let wine = Color(hex: 0x722F37)     // accent
-    public static let wineSoftBg = Color(hex: 0xF6E7E4)
-    public static let olive = Color(hex: 0x5E6F35)    // secondary accent
-    public static let oliveSoft = Color(hex: 0xE9EDD9)
-    public static let line = Color(hex: 0x241F1C).opacity(0.12)
+    public static let deep = Color(hex: 0x13100C)        // near-black warm base
+    public static let ink = Color(hex: 0xF5F0E6)         // primary text (cream)
+    public static let muted = Color(hex: 0xA39686)       // secondary text
+    public static let wine = Color(hex: 0x722F37)        // brand fill
+    public static let wineBright = Color(hex: 0xE2757C)  // accent on dark
+    public static let olive = Color(hex: 0x8CA050)
+    public static let oliveBright = Color(hex: 0xB6CB7A)
+    public static let cream = Color(hex: 0xF6F3EA)
 
-    /// Acerto banner (the single solid-brand block in the app).
-    public static let creamOnInk = Color(hex: 0xF5F2EA)
-    public static let mutedOnInk = Color(hex: 0xECD9D5)
+    public static let wineFill = LinearGradient(
+        colors: [Color(hex: 0x8E3B44), wine],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
+    public static let glowFill = LinearGradient(
+        colors: [wineBright, oliveBright],
+        startPoint: .leading, endPoint: .trailing
+    )
 }
 
 extension Color {
@@ -31,8 +34,7 @@ extension Color {
     }
 }
 
-/// Instrument Serif is the one brand font (home hero + key numbers). Everything
-/// else is the system font (SF Pro), which is what a native iOS app ships with.
+/// Instrument Serif is the one brand font (hero + numerals). Everything else is SF.
 public enum Fonts {
     public static let serifPS = "InstrumentSerif-Regular"
 
@@ -44,68 +46,207 @@ public enum Fonts {
         }
     }
 
-    public static func body(_ size: CGFloat = 16) -> Font { .system(size: size) }
-    public static func mono(_ size: CGFloat = 10) -> Font { .system(size: size, design: .monospaced) }
     public static func display(_ size: CGFloat) -> Font { .custom(serifPS, size: size) }
+    public static func mono(_ size: CGFloat = 15) -> Font { .system(size: size, design: .monospaced) }
 }
 
-/// Small secondary paragraph, used as section footers.
-public struct Note: View {
+// MARK: - Backdrop
+
+/// The app background: deep warm black with soft wine and olive halos.
+struct ScreenBackdrop: View {
+    var body: some View {
+        ZStack {
+            Theme.deep
+            GeometryReader { geo in
+                Circle().fill(Theme.wine)
+                    .frame(width: 640, height: 640)
+                    .blur(radius: 110)
+                    .opacity(0.55)
+                    .position(x: geo.size.width * 0.15, y: geo.size.height * 0.02)
+                Circle().fill(Theme.olive)
+                    .frame(width: 560, height: 560)
+                    .blur(radius: 120)
+                    .opacity(0.42)
+                    .position(x: geo.size.width * 0.98, y: geo.size.height * 0.92)
+            }
+            .ignoresSafeArea()
+        }
+        .ignoresSafeArea()
+    }
+}
+
+// MARK: - Glass
+
+private struct GlassStyle: ViewModifier {
+    var corner: CGFloat
+    var glow: Color?
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: corner, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.white.opacity(0.16), .white.opacity(0.03)],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            )
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: corner, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [.white.opacity(0.24), .white.opacity(0.06)],
+                                    startPoint: .top, endPoint: .bottom
+                                ),
+                                lineWidth: 1
+                            )
+                    }
+                    .shadow(color: .black.opacity(0.38), radius: 22, y: 14)
+                    .background {
+                        if let glow {
+                            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                                .fill(glow.opacity(0.22))
+                                .blur(radius: 26)
+                                .offset(y: 18)
+                        }
+                    }
+            }
+    }
+}
+
+extension View {
+    /// Floating glass card surface.
+    func glass(corner: CGFloat = 26, glow: Color? = nil) -> some View {
+        modifier(GlassStyle(corner: corner, glow: glow))
+    }
+}
+
+// MARK: - Screen shell
+
+/// Shared screen shell: serif header + stack of glass cards on the backdrop.
+struct MaltaScreen<Content: View>: View {
+    let title: String
+    var subtitle: String? = nil
+    let content: () -> Content
+
+    init(title: String, subtitle: String? = nil, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(title)
+                    .font(Fonts.display(42))
+                    .foregroundStyle(Theme.ink)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, -6)
+                }
+                content()
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 6)
+            .padding(.bottom, 44)
+        }
+        .scrollDismissesKeyboard(.interactively)
+    }
+}
+
+/// Small uppercase group label that sits above a glass card.
+struct ScreenLabel: View {
     let text: String
 
-    public init(_ text: String) {
-        self.text = text
-    }
-
-    public var body: some View {
-        Text(text)
-            .font(.footnote)
+    var body: some View {
+        Text(text.uppercased())
+            .font(.caption2.weight(.semibold))
+            .tracking(1.1)
             .foregroundStyle(Theme.muted)
-            .fixedSize(horizontal: false, vertical: true)
+            .padding(.leading, 6)
+            .padding(.top, 6)
     }
 }
 
-/// Trailing decimal field in a list row (native look: label left, value right).
-public struct RowField: View {
+/// Caption + serif value, used inside stat grids.
+struct GlassStat: View {
+    let label: String
+    let value: String
+    var accent: Color? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(Theme.muted)
+                .lineLimit(1)
+            Text(value)
+                .font(Fonts.display(21))
+                .foregroundStyle(accent ?? Theme.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+        }
+    }
+}
+
+/// Numeric field row: label left, monospaced value right.
+struct RowField: View {
     let title: String
     @Binding var text: String
 
-    public init(_ title: String, text: Binding<String>) {
+    init(_ title: String, text: Binding<String>) {
         self.title = title
         _text = text
     }
 
-    public var body: some View {
+    var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
+                .font(.subheadline)
+                .foregroundStyle(Theme.muted)
                 .lineLimit(1)
             Spacer(minLength: 12)
             TextField("0", text: $text)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
-                .font(Fonts.mono(15))
+                .font(Fonts.mono(16))
                 .foregroundStyle(Theme.ink)
         }
     }
 }
 
-/// Progress bar (olive fill by default).
-public struct ProgressLine: View {
+/// Gradient progress capsule on a soft track.
+struct ProgressLine: View {
     let ratio: Double
-    var tint: Color
 
-    public init(ratio: Double, tint: Color = Theme.olive) {
+    init(ratio: Double) {
         self.ratio = max(0, min(1, ratio))
-        self.tint = tint
     }
 
-    public var body: some View {
+    var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Theme.line.opacity(0.5))
-                Capsule().fill(tint).frame(width: geo.size.width * ratio)
+                Capsule().fill(.white.opacity(0.10))
+                Capsule()
+                    .fill(Theme.glowFill)
+                    .frame(width: max(6, geo.size.width * ratio))
+                    .shadow(color: Theme.wineBright.opacity(0.45), radius: 6, y: 1)
             }
         }
-        .frame(height: 6)
+        .frame(height: 8)
+    }
+}
+
+extension Double {
+    func rounded2() -> Double {
+        (self * 100).rounded() / 100
     }
 }

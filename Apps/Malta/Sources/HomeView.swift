@@ -1,28 +1,20 @@
 import SwiftUI
 import MaltaKit
 
-/// Aba Inicio: hero da data, numeros principais, poupanca e marcos.
+/// Aba Inicio: hero em vidro, contagem de dias viva, numeros-chave,
+/// poupanca e marcos.
 struct HomeView: View {
     @Environment(MaltaStore.self) private var store
     @State private var showingSync = false
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    hero
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                    countdown
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                }
-                statsSection
-                CofrinhoSection()
-                milestonesSection
+            MaltaScreen(title: "Malta 2027", subtitle: "21 dias entre o fim de agosto e o inicio de setembro.") {
+                countdownCard
+                statsCard
+                CofrinhoCard()
+                marcosContent
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingSync) {
                 SyncSheetView()
@@ -30,75 +22,97 @@ struct HomeView: View {
         }
     }
 
-    private var hero: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
+    private var syncButton: some View {
+        Button {
+            showingSync = true
+        } label: {
+            Image(systemName: "person.2.circle")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 38, height: 38)
+                .glass(corner: 19)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 8)
+        .accessibilityLabel("Sync")
+    }
+
+    private var countdownCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Text("\(days)")
+                    .font(Fonts.display(76))
+                    .foregroundStyle(Theme.wineBright)
+                    .contentTransition(.numericText(countsDown: true))
+                    .animation(.snappy(duration: 0.5), value: days)
+                    .shadow(color: Theme.wineBright.opacity(0.5), radius: 22, y: 2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("dias")
+                        .font(Fonts.display(26))
+                        .foregroundStyle(Theme.ink)
+                    Text("ate o embarque")
+                        .font(.caption)
+                        .foregroundStyle(Theme.muted)
+                }
+                .padding(.top, 22)
                 Spacer()
-                Button {
-                    showingSync = true
-                } label: {
-                    Image(systemName: "person.2.circle")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Theme.wine)
-                }
+                syncButton
             }
-            Text("Malta")
-                .font(Fonts.display(56))
-                .foregroundStyle(Theme.ink)
-                .padding(.top, 4)
-            Text(store.settings.start == Trip.defaultStart ? "2027." : "A caminho.")
-                .font(Fonts.display(56).italic())
-                .foregroundStyle(Theme.ink)
-                .padding(.top, -14)
-            Text("21 dias entre o fim de agosto e o inicio de setembro de 2027.")
-                .font(.subheadline)
+            let date = Trip.date(fromISO: store.settings.start)
+            Text("Embarque 28 de agosto - " + Trip.weekdayLabel(for: date))
+                .font(.footnote)
                 .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 12)
+                .padding(.leading, 4)
         }
+        .padding(18)
+        .glass(glow: Theme.wine)
     }
 
-    private var countdown: some View {
-        let days = Trip.countdown(toISO: store.settings.start)
-        return VStack(alignment: .leading, spacing: 0) {
-            Text("\(days)")
-                .font(Fonts.display(64))
-                .foregroundStyle(Theme.wine)
-            Text(days == 1 ? "dia ate o embarque" : "dias ate o embarque")
-                .font(.callout)
-                .foregroundStyle(Theme.muted)
-            Note("Embarque " + Trip.longDateLabel(for: Trip.date(fromISO: store.settings.start)))
-                .padding(.top, 10)
-        }
+    private var days: Int {
+        Trip.countdown(toISO: store.settings.start)
     }
 
-    private var statsSection: some View {
-        Section {
-            Grid(alignment: .leading, verticalSpacing: 12) {
+    private var statsCard: some View {
+        VStack(spacing: 0) {
+            ScreenLabel(text: "Nesta altura")
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
                 GridRow {
-                    StatCell(label: "Cada uma", value: Money.eur(store.budgetEur / 2))
-                    StatCell(label: "Projecao", value: Money.brl(store.cofrinho.saved))
+                    GlassStat(label: "Cada uma", value: Money.eur(store.budgetEur / 2))
+                    GlassStat(label: "Meta em euros", value: Money.eur(store.budgetEur))
                 }
                 GridRow {
-                    StatCell(label: "Aportes restantes",
-                             value: "\(store.cofrinho.months + 1)")
-                    StatCell(label: "Meta em euros", value: Money.eur(store.budgetEur))
+                    GlassStat(label: "Projecao", value: Money.brl(store.cofrinho.saved))
+                    GlassStat(label: "Aportes restantes",
+                              value: "\(store.cofrinho.months + 1)")
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.bottom, 4)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .glass()
     }
 
-    private var milestonesSection: some View {
-        Section("Marcos ate o embarque") {
-            ForEach(Milestones.all.prefix(3)) { m in
-                MilestoneRow(milestone: m)
-            }
-            DisclosureGroup("Os outros \(max(0, Milestones.all.count - 3)) marcos") {
-                ForEach(Milestones.all.dropFirst(3)) { m in
+    private var marcosContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScreenLabel(text: "Marcos ate o embarque")
+            VStack(spacing: 12) {
+                ForEach(Milestones.all.prefix(3)) { m in
                     MilestoneRow(milestone: m)
                 }
+                DisclosureGroup {
+                    ForEach(Milestones.all.dropFirst(3)) { m in
+                        MilestoneRow(milestone: m)
+                    }
+                } label: {
+                    Text("Os outros \(max(0, Milestones.all.count - 3)) marcos")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.muted)
+                }
+                .tint(Theme.muted)
             }
+            .padding(16)
+            .glass()
         }
     }
 }
@@ -109,10 +123,10 @@ private struct MilestoneRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Text(String(format: "%02d", milestone.id))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(Theme.olive)
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(Theme.oliveBright)
                 .padding(.top, 3)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(milestone.title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.ink)
@@ -122,39 +136,39 @@ private struct MilestoneRow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(.vertical, 3)
     }
 }
 
-private struct StatCell: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Theme.muted)
-            Text(value)
-                .font(Fonts.display(24))
-                .foregroundStyle(Theme.ink)
-        }
-    }
-}
-
-/// Poupanca: aporte, meta, cotacao e progresso em linhas nativas de lista.
-struct CofrinhoSection: View {
+/// Poupanca: aporte + meta + progresso, em vidro.
+struct CofrinhoCard: View {
     @Environment(MaltaStore.self) private var store
     @State private var monthlyTx = ""
     @State private var metaTx = ""
     @State private var seeded = false
 
     var body: some View {
-        Section("Poupanca") {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                ScreenLabel(text: "Poupanca")
+                    .padding(.top, 0)
+                Spacer()
+                Text(Money.brNumber(store.settings.meta))
+                    .font(Fonts.mono(13))
+                    .foregroundStyle(Theme.muted)
+            }
             RowField("Aporte por mes", text: $monthlyTx)
             RowField("Meta total", text: $metaTx)
-            progressRow
-                .listRowSeparator(.hidden)
+            ProgressLine(ratio: store.cofrinho.ratio)
+                .padding(.top, 2)
+            Text(progressText)
+                .font(.footnote)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .glass()
         .onAppear {
             guard !seeded else { return }
             seeded = true
@@ -169,22 +183,12 @@ struct CofrinhoSection: View {
         }
     }
 
-    private var progressRow: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ProgressLine(ratio: store.cofrinho.ratio)
-            Note(progressText)
-        }
-        .padding(.vertical, 4)
-    }
-
     private var progressText: String {
         let c = store.cofrinho
         let remaining = max(0, store.settings.meta - c.saved)
         if remaining < 0.5 {
-            return "Meta atingida com " + "\(c.months + 1)" + " aportes de " +
-                Money.brl(store.settings.monthly) + "."
+            return "Meta atingida. A cotacao fica na aba Dinheiro."
         }
-        return "Faltam " + Money.brl(remaining) + " para a meta de " +
-            Money.brl(store.settings.meta) + ". A cotacao fica na aba Dinheiro."
+        return "Faltam " + Money.brl(remaining) + " para a meta. A cotacao fica na aba Dinheiro."
     }
 }
