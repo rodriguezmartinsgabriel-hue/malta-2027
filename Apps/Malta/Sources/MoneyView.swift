@@ -6,10 +6,13 @@ struct MoneyView: View {
     @Environment(MaltaStore.self) private var store
     @State private var brlTx = "10.000"
     @State private var presetIdx = 0
+    @State private var fxTx = ""
+    @State private var fxSeeded = false
 
     var body: some View {
         NavigationStack {
             List {
+                rateSection
                 converterSection
                 accountSection
                 recommendationSection
@@ -19,6 +22,48 @@ struct MoneyView: View {
             .background(Theme.bg)
             .navigationTitle("Dinheiro")
         }
+    }
+
+    /// Cotacao (manual + ao vivo) mora aqui, junto de quem a usa: o conversor.
+    private var rateSection: some View {
+        Section {
+            RowField("Cotacao manual", text: $fxTx)
+            Toggle(isOn: Binding(
+                get: { store.useLiveFX },
+                set: { on in
+                    store.setUseLiveFX(on)
+                    Task { await store.refreshLiveFX() }
+                })) {
+                Text("Cotacao ao vivo")
+            }
+        } header: {
+            Text("Cotacao")
+        } footer: {
+            Note(rateNote)
+        }
+        .onAppear {
+            guard !fxSeeded else { return }
+            fxSeeded = true
+            fxTx = String(format: "%.2f", store.settings.manualFx)
+                .replacingOccurrences(of: ".", with: ",")
+        }
+        .onChange(of: fxTx) { _, v in
+            let manual = Money.parse(v) ?? 0
+            store.settings.manualFx = manual > 1 ? manual : TripSettings.defaultFx
+        }
+    }
+
+    private var rateNote: String {
+        guard store.useLiveFX else {
+            return "Cotacao manual em uso (EUR " + Money.brNumber(store.settings.manualFx) +
+                "). Ligue ao vivo para buscar de open.er-api.com."
+        }
+        if let q = store.liveQuote,
+           Date().timeIntervalSince(q.fetchedAt) < 60 * 60 * 36 {
+            return "Ao vivo: open.er-api.com, EUR 1 = R$ " + Money.brNumber(store.fx) +
+                " (atualizada " + stamp(q) + ")."
+        }
+        return "Sem cotacao ao vivo agora - usando a ultima conhecida ou a manual."
     }
 
     private var converterSection: some View {
@@ -120,6 +165,13 @@ struct MoneyView: View {
         let got = Seeds.brlToEur(amount, rate: store.fx, preset: p)
         return "No caminho " + p.name + ": " + Money.brl((amount - got * store.fx).rounded2()) +
             " em impostos e spread."
+    }
+
+    private func stamp(_ q: FXQuote) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "pt_BR")
+        f.dateFormat = "dd/MM HH'h'"
+        return f.string(from: q.fetchedAt)
     }
 }
 

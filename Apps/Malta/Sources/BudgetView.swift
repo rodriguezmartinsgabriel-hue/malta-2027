@@ -83,7 +83,8 @@ struct BudgetView: View {
     private var expenseSection: some View {
         Section("Gastos") {
             if store.expenses.isEmpty {
-                Note("Nenhum gasto ainda. Comecem pelo aporte: transferencias, reservas e compras.")
+                Note("Nenhum gasto ainda. Comecem pelo aporte: transferencias, reservas e compras. " +
+                     "Ative o sync (icone no topo do Inicio) para ficar igual nos dois aparelhos.")
                     .listRowSeparator(.hidden)
             } else {
                 ForEach(store.expenses.reversed()) { e in

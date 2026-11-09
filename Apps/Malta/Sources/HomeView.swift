@@ -76,12 +76,13 @@ struct HomeView: View {
         Section {
             Grid(alignment: .leading, verticalSpacing: 12) {
                 GridRow {
-                    StatCell(label: "Meta total", value: Money.brl(store.settings.meta))
-                    StatCell(label: "Orcamento", value: Money.eur(store.budgetEur))
+                    StatCell(label: "Cada uma", value: Money.eur(store.budgetEur / 2))
+                    StatCell(label: "Projecao", value: Money.brl(store.cofrinho.saved))
                 }
                 GridRow {
-                    StatCell(label: "Cada uma", value: Money.eur(store.budgetEur / 2))
-                    StatCell(label: "Cotacao", value: "EUR 1 = R$ " + Money.brNumber(store.fx))
+                    StatCell(label: "Aportes restantes",
+                             value: "\(store.cofrinho.months + 1)")
+                    StatCell(label: "Meta em euros", value: Money.eur(store.budgetEur))
                 }
             }
             .padding(.vertical, 4)
@@ -90,22 +91,35 @@ struct HomeView: View {
 
     private var milestonesSection: some View {
         Section("Marcos ate o embarque") {
-            ForEach(Milestones.all) { m in
-                HStack(alignment: .top, spacing: 12) {
-                    Text(String(format: "%02d", m.id))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(Theme.olive)
-                        .padding(.top, 3)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(m.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.ink)
-                        Text(m.body)
-                            .font(.footnote)
-                            .foregroundStyle(Theme.muted)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            ForEach(Milestones.all.prefix(3)) { m in
+                MilestoneRow(milestone: m)
+            }
+            DisclosureGroup("Os outros \(max(0, Milestones.all.count - 3)) marcos") {
+                ForEach(Milestones.all.dropFirst(3)) { m in
+                    MilestoneRow(milestone: m)
                 }
+            }
+        }
+    }
+}
+
+private struct MilestoneRow: View {
+    let milestone: Milestone
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(String(format: "%02d", milestone.id))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(Theme.olive)
+                .padding(.top, 3)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(milestone.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.ink)
+                Text(milestone.body)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -131,7 +145,6 @@ private struct StatCell: View {
 struct CofrinhoSection: View {
     @Environment(MaltaStore.self) private var store
     @State private var monthlyTx = ""
-    @State private var fxTx = ""
     @State private var metaTx = ""
     @State private var seeded = false
 
@@ -139,32 +152,17 @@ struct CofrinhoSection: View {
         Section("Poupanca") {
             RowField("Aporte por mes", text: $monthlyTx)
             RowField("Meta total", text: $metaTx)
-            RowField("Cotacao EUR/BRL", text: $fxTx)
-            Toggle(isOn: Binding(
-                get: { store.useLiveFX },
-                set: { on in
-                    store.setUseLiveFX(on)
-                    Task { await store.refreshLiveFX() }
-                })) {
-                Text("Cotacao ao vivo")
-            }
             progressRow
                 .listRowSeparator(.hidden)
         }
-        .listRowBackground(Theme.paper)
         .onAppear {
             guard !seeded else { return }
             seeded = true
             monthlyTx = Money.brNumber(store.settings.monthly)
-            fxTx = String(format: "%.2f", store.settings.manualFx).replacingOccurrences(of: ".", with: ",")
             metaTx = Money.brNumber(store.settings.meta)
         }
         .onChange(of: monthlyTx) { _, v in
             store.settings.monthly = Money.parse(v) ?? 0
-        }
-        .onChange(of: fxTx) { _, v in
-            let manual = Money.parse(v) ?? 0
-            store.settings.manualFx = manual > 1 ? manual : TripSettings.defaultFx
         }
         .onChange(of: metaTx) { _, v in
             store.settings.meta = Money.parse(v) ?? 0
@@ -174,24 +172,19 @@ struct CofrinhoSection: View {
     private var progressRow: some View {
         VStack(alignment: .leading, spacing: 10) {
             ProgressLine(ratio: store.cofrinho.ratio)
-            Note(store.cofrinho.text)
-            Note(fxNote)
+            Note(progressText)
         }
         .padding(.vertical, 4)
     }
 
-    private var fxNote: String {
-        guard store.useLiveFX else { return "Cotacao manual.\n* cambio usado nos calculos em EUR." }
-        if let q = store.liveQuote, Date().timeIntervalSince(q.fetchedAt) < 60 * 60 * 36 {
-            return "Cotacao ao vivo: open.er-api.com, atualizada " + stamp(q) + "."
+    private var progressText: String {
+        let c = store.cofrinho
+        let remaining = max(0, store.settings.meta - c.saved)
+        if remaining < 0.5 {
+            return "Meta atingida com " + "\(c.months + 1)" + " aportes de " +
+                Money.brl(store.settings.monthly) + "."
         }
-        return "Sem cotacao ao vivo agora - usando a ultima conhecida."
-    }
-
-    private func stamp(_ q: FXQuote) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "pt_BR")
-        f.dateFormat = "dd/MM HH'h'"
-        return f.string(from: q.fetchedAt)
+        return "Faltam " + Money.brl(remaining) + " para a meta de " +
+            Money.brl(store.settings.meta) + ". A cotacao fica na aba Dinheiro."
     }
 }

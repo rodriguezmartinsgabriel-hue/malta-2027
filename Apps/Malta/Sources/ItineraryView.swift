@@ -33,16 +33,25 @@ struct ItineraryView: View {
     }
 
     private var daysSection: some View {
-        Section("21 dias") {
-            ForEach(Array(store.itinerary.enumerated()), id: \.element.id) { idx, day in
-                DayRow(index: idx, date: Trip.itineraryDate(startISO: store.settings.start, dayIndex: idx),
-                       day: day,
-                       onTitle: { store.itinerary[idx].title = $0 },
-                       onNote: { store.itinerary[idx].note = $0 },
-                       onDone: { store.itinerary[idx].done = $0 })
+        ForEach(weekStarts, id: \.self) { start in
+            Section("Semana \(start / 7 + 1)") {
+                ForEach(Array(store.itinerary.enumerated())
+                    .dropFirst(start)
+                    .prefix(7), id: \.element.id) { idx, day in
+                    DayRow(index: idx,
+                           date: Trip.itineraryDate(startISO: store.settings.start, dayIndex: idx),
+                           day: day,
+                           onTitle: { store.itinerary[idx].title = $0 },
+                           onNote: { store.itinerary[idx].note = $0 },
+                           onDone: { store.itinerary[idx].done = $0 })
+                }
             }
+            .listRowBackground(Theme.paper)
         }
-        .listRowBackground(Theme.paper)
+    }
+
+    private var weekStarts: [Int] {
+        stride(from: 0, to: max(store.itinerary.count, 1), by: 7).map { $0 }
     }
 }
 
@@ -56,15 +65,27 @@ private struct DayRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(spacing: 1) {
-                Text(Trip.dayMonthLabel(for: date))
-                    .font(Fonts.display(20))
-                    .foregroundStyle(Theme.wine)
-                Text(Trip.weekdayLabel(for: date))
-                    .font(.caption2)
-                    .foregroundStyle(Theme.muted)
+            // Toque na data marca o dia como pronto (fila de viagem feita).
+            Button {
+                onDone(!day.done)
+            } label: {
+                VStack(spacing: 1) {
+                    Text(Trip.dayMonthLabel(for: date))
+                        .font(Fonts.display(20))
+                        .foregroundStyle(day.done ? Theme.olive : Theme.wine)
+                    Text(Trip.weekdayLabel(for: date))
+                        .font(.caption2)
+                        .foregroundStyle(Theme.muted)
+                    if day.done {
+                        Image(systemName: "checkmark")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.olive)
+                    }
+                }
+                .frame(width: 54)
+                .contentShape(Rectangle())
             }
-            .frame(width: 54)
+            .buttonStyle(.plain)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("DIA \(index + 1)")
@@ -88,14 +109,6 @@ private struct DayRow: View {
                 .autocorrectionDisabled()
                 .textFieldStyle(.plain)
             }
-
-            Toggle("", isOn: Binding(
-                get: { day.done },
-                set: { onDone($0) }
-            ))
-            .labelsHidden()
-            .tint(Theme.olive)
-            .fixedSize()
         }
         .padding(.vertical, 4)
     }
