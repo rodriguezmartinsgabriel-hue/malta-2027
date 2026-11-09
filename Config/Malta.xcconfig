@@ -1,0 +1,8 @@
+// Malta 2027 - guia da viagem de Nana e Dani. So iPhone.
+PRODUCT_NAME = Malta
+PRODUCT_BUNDLE_IDENTIFIER = app.malta.nana
+TARGETED_DEVICE_FAMILY = 1
+INFOPLIST_FILE = Apps/Malta/Resources/Info.plist
+INFOPLIST_KEY_CFBundleDisplayName = Malta 2027
+INFOPLIST_KEY_LSApplicationCategoryType = public.app-category.travel
+INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait

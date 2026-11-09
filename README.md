@@ -42,3 +42,49 @@ python3 -m http.server 8793
 ## Avisos
 
 Não é conselho financeiro. IOF vive em liminar do STF (16/07/2025) sem referendo do Plenário — revisar alíquota 60–90 dias antes do embarque. Pesquisa de preços coletada via TinyFish em 09/11/2026.
+
+---
+
+# App nativo iOS (SwiftUI) — 09/11/2026
+
+O app foi reescrito como **nativo SwiftUI** (decisão: nada de Capacitor/PWA standalone).
+
+## Estado do app nativo
+
+- `Apps/Malta/` — app SwiftUI completo (6 abas: Inicio, Dinheiro, Orcamento, Roteiro, Checklist, Links).
+- `Packages/MaltaKit/` — pacote com dados/calculos/sync: `Money`, `Settlement`, `Trip`, `Seeds`, `LiveFX` (cotacao ao vivo `open.er-api.com`, cache 36h), `Supabase` (REST), `SyncMap`, `Content` (seeds das 4 contas + recomendacao).
+- `Malta.xcodeproj` — **artefato gerado**: nunca editar o pbxproj a mao; a arvore vem de `tools/gen_project.py` (rodar `python3 tools/gen_project.py --check` falha se faltar arquivo).
+- `Config/*.xcconfig` — build settings fora do pbxproj. `Config/Local.xcconfig` e git-ignored (SUPABASE_URL/ANON_KEY + DEVELOPMENT_TEAM).
+
+## UI nativa (dialeto Apple)
+
+- Estrutura = iOS nativo: `NavigationStack` + large title, `List/Form` insetGrouped, secoes nativas, tab bar translucida own-build com 6 items (UIKit colapsa >5 em "More").
+- Tipografia = SF do sistema; **Instrument Serif** aparece so no hero do Inicio e nos numeros-chave (marca). Sem eyebrows, pills ou blocos decorativos (ex-slop da PWA).
+- Paleta: fundo creme `#F6F3EA`, papel `#FFFEF9`, vinho `#722F37`, oliva `#5E6F35`.
+
+## Sync Supabase (2 iPhones)
+
+1. Criar projeto no Supabase (free) e rodar `research/supabase/schema.sql`.
+2. No app: botao no topo do Inicio > colar URL + anon key + trip id (`nana-dani`) > Salvar e conectar. Ou preencher `Config/Local.xcconfig` (compila embutido).
+
+## Build/run no Mac
+
+```bash
+xcodebuild -project Malta.xcodeproj -scheme Malta \
+  -destination 'platform=iOS Simulator,name=iPhone 15 Pro' build
+APP=$(ls -d ~/Library/Developer/Xcode/DerivedData/Malta-*/Build/Products/Debug-iphonesimulator/Malta.app | head -1)
+xcrun simctl install "UDID" "$APP" && xcrun simctl launch "UDID" app.malta.nana
+```
+
+Smoke de aba via env: `SIMCTL_CHILD_MALTA_TAB=dinheiro xcrun simctl launch ... app.malta.nana`.
+
+## Testes
+
+`cd Packages/MaltaKit && swift test` — 19 testes verdes (inclui regressao do parse pt-BR "10.000" e conversor QA da PWA).
+
+## Pendencias (dono: Gabriel)
+
+- [ ] Bundle ID final (hoje `app.malta.nana`) — confirmar antes do ASC.
+- [ ] Chaves ASC (ASC_KEY_ID / ASC_ISSUER_ID / .p8 / APPLE_TEAM_ID) para TestFlight.
+- [ ] SUPABASE_URL + ANON_KEY para ativar o sync entre os 2 iPhones.
+- [ ] Development Team (Free Team hoje) para assinar nos aparelhos reais.

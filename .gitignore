@@ -1,6 +1,20 @@
-Thumbs.db
+# macOS
 .DS_Store
+
+# Xcode
+build/
+DerivedData/
+xcuserdata/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# SwiftPM
+.build/
+Packages/MaltaKit/.build/
+
+# secrets locais (assinatura e Supabase)
+Config/Local.xcconfig
+
+# sw.js cache dirs
 node_modules/
-.capacitor/
-ios/DerivedData/
-.vscode/
