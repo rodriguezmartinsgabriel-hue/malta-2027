@@ -3,7 +3,7 @@
 > **PWA v2 (2026-11-09, branch `fix/pwa-aaa`)** - o `index.html` foi reescrito. O que vale agora:
 > - Estado unico em `localStorage` (`malta2027:v2`) + preferencias do aparelho (`malta2027:prefs`); dados da v1 migram sozinhos na primeira abertura. Fotos do diario ficam em IndexedDB (so no aparelho).
 > - Sem Supabase configurado o app e 100% local e nao mostra login. Conta > Backup exporta/importa um `.json` (importar combina, nao sobrescreve).
-> - Sync: preencher `CONFIG` no topo do `<script>` do `index.html` (URL + anon key). Login por codigo de 6 digitos no e-mail (funciona dentro do PWA instalado no iPhone); o template de e-mail do Supabase precisa conter `{{ .Token }}`. O sync junta os dois lados (`mergeState`) em vez de sobrescrever, e roda sozinho.
+> - Sync LIGADO (2026-11-09): `CONFIG` aponta para o projeto Supabase `malta-2027` (ref `gdwcpziredxssaqwwxtk`). Login por e-mail e senha (cada uma cria a conta e confirma pelo link do e-mail); o plano gratis nao deixa editar o template de e-mail, por isso nao e codigo de 6 digitos. So os dois e-mails da policy leem/gravam `malta_sync`. O sync junta os dois lados (`mergeState`) e roda sozinho.
 > - `sw.js` proprio (sem Workbox): rede primeiro para o app, cache como reserva offline. Trocar `VERSION` ao mudar a lista de arquivos.
 > - As secoes abaixo que citam "colar URL + anon key no sheet" e "link magico" descrevem a v1 e estao desatualizadas.
 
