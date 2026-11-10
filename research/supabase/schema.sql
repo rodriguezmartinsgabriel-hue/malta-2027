@@ -38,12 +38,20 @@ create table if not exists settings (
   updated_at timestamptz not null default now()
 );
 
--- PWA (index.html): sync em blob por trip (gastos, roteiro, checklist, settings)
+-- PWA (index.html): sync em blob por trip (gastos, roteiro, checklist, settings, diario)
 create table if not exists malta_sync (
   trip_id text primary key,
   payload jsonb not null,
   updated_at timestamptz not null default now()
 );
+
+-- Acesso restrito: so usuarios autenticados e autorizados (Nana/Dani).
+-- Troque os e-mails abaixo pelos e-mails reais delas antes de rodar.
+alter table malta_sync enable row level security;
+create policy "malta_sync_allowed_rw" on malta_sync
+  for all to authenticated
+  using (lower(auth.jwt() ->> 'email') in ('nana@email.com', 'dani@email.com'))
+  with check (lower(auth.jwt() ->> 'email') in ('nana@email.com', 'dani@email.com'));
 
 create index if not exists expenses_trip on expenses (trip_id);
 create index if not exists itinerary_trip on itinerary (trip_id, idx);

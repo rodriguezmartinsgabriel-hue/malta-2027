@@ -488,7 +488,7 @@ body.locked #main,body.locked .dock{display:none}
       <input class="field" type="email" id="authEmail" placeholder="seu@email.com" autocomplete="email">
       <button class="btn-capsule" id="btnMagic" type="button" style="margin-top:10px">Enviar link de acesso</button>
       <p class="note" id="authMsg" style="margin-top:8px;min-height:1.2em"></p>
-      <button class="btn-capsule btn-soft" id="btnLocal" type="button" style="margin-top:10px">Entrar sem login</button>
+      <button class="btn-capsule btn-soft" id="btnLocal" type="button" style="margin-top:10px">Usar so neste aparelho (sem sync)</button>
       <p class="note" id="authCfgNote" style="display:none;margin-top:10px">Sem Supabase configurado — entrando em modo local. Depois abra o sync para configurar.</p>
     </div>
 
@@ -1246,13 +1246,18 @@ function setSyncStatus(txt, ok){
   el.textContent = txt;
   el.classList.toggle('ok', !!ok);
 }
+async function syncToken(){
+  try{ if(sbClient){ const {data} = await sbClient.auth.getSession(); if(data && data.session) return data.session.access_token; } }catch(e){}
+  return syncCfg().key;
+}
 async function syncPush(){
   const c = syncCfg();
+  const token = await syncToken();
   const r = await fetch(c.url.replace(/\/$/, '') + '/rest/v1/malta_sync', {
     method: 'POST',
     headers: {
       'apikey': c.key,
-      'Authorization': 'Bearer ' + c.key,
+      'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json',
       'Prefer': 'resolution=merge-duplicates'
     },
@@ -1262,8 +1267,9 @@ async function syncPush(){
 }
 async function syncPull(){
   const c = syncCfg();
+  const token = await syncToken();
   const r = await fetch(c.url.replace(/\/$/, '') + '/rest/v1/malta_sync?trip_id=eq.' + encodeURIComponent(c.trip) + '&select=payload,updated_at', {
-    headers: {'apikey': c.key, 'Authorization': 'Bearer ' + c.key}
+    headers: {'apikey': c.key, 'Authorization': 'Bearer ' + token}
   });
   if(!r.ok) throw new Error('pull ' + r.status);
   const rows = await r.json();
@@ -1410,7 +1416,10 @@ $('#btnMagic').addEventListener('click', async () => {
     $('#authMsg').textContent = error ? 'Erro: ' + error.message : 'Link enviado! Abra o e-mail e volte aqui.';
   }catch(e){ $('#authMsg').textContent = 'Sem acesso ao Supabase agora.'; }
 });
-$('#btnLocal').addEventListener('click', () => showAuth('profile'));
+$('#btnLocal').addEventListener('click', () => {
+  if (sbConfigured()) { $('#authMsg').textContent = 'Com o sync ativo, entre com Google ou link por e-mail para proteger os dados.'; return; }
+  showAuth('profile');
+});
 $$('.who').forEach(b => b.addEventListener('click', () => {
   whoSel = b.dataset.who;
   $$('.who').forEach(x => x.classList.toggle('on', x === b));
