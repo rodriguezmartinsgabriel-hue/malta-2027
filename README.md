@@ -1,8 +1,7 @@
 # Malta 2027
 
 > **PWA v2 (2026-11-09, branch `fix/pwa-aaa`)** - o `index.html` foi reescrito. O que vale agora:
-> - Estado unico em `localStorage` (`malta2027:v2`) + preferencias do aparelho (`malta2027:prefs`); dados da v1 migram sozinhos na primeira abertura. Fotos do diario ficam em IndexedDB (so no aparelho).
-> - Sem Supabase configurado o app e 100% local e nao mostra login. Conta > Backup exporta/importa um `.json` (importar combina, nao sobrescreve).
+> - **v3 (2026-11-09):** dois blocos, no aparelho (`malta2027:v3`) e no servidor: **compartilhado** (`malta_sync`: embarque, roteiro, checklist, diario, fotos, gastos juntas) e **pessoal** (`malta_private`: poupanca e gastos so meus, uma linha por conta, invisivel para a outra). Quem e Nana ou Dani vem do e-mail (`malta_members`), nao e escolha na tela. Juncao campo a campo com hora da ultima edicao e lapides para apagados (`mergeShared`/`mergePrivate`); Fotos do diario: copia em IndexedDB + bucket privado `malta-diary`. Realtime avisa o outro aparelho. Dados v1/v2 migram sozinhos.
 > - Sync LIGADO (2026-11-09): `CONFIG` aponta para o projeto Supabase `malta-2027` (ref `gdwcpziredxssaqwwxtk`). Login por e-mail e senha (cada uma cria a conta e confirma pelo link do e-mail); o plano gratis nao deixa editar o template de e-mail, por isso nao e codigo de 6 digitos. So os dois e-mails da policy leem/gravam `malta_sync`. O sync junta os dois lados (`mergeState`) e roda sozinho.
 > - `sw.js` proprio (sem Workbox): rede primeiro para o app, cache como reserva offline. Trocar `VERSION` ao mudar a lista de arquivos.
 > - As secoes abaixo que citam "colar URL + anon key no sheet" e "link magico" descrevem a v1 e estao desatualizadas.

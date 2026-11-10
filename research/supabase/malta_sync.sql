@@ -14,3 +14,14 @@ create policy "malta_sync_allowed_rw" on public.malta_sync
   for all to authenticated
   using (lower((select auth.jwt()) ->> 'email') in ('nataliacprestes@gmail.com', 'danielalimags@outlook.com'))
   with check (lower((select auth.jwt()) ->> 'email') in ('nataliacprestes@gmail.com', 'danielalimags@outlook.com'));
+
+-- 2026-11-09 (v3): privacidade por conta. Migration "malta_privacy_members_photos" aplicada no projeto.
+-- Resumo do que ela criou (o SQL completo esta no historico de migrations do Supabase):
+--   public.malta_members (email, who)      quem e Nana/Dani; cada uma so le a propria linha
+--   malta_private.is_member()              funcao usada por todas as policies
+--   public.malta_sync                      compartilhado; policy troca a lista fixa de e-mails por is_member()
+--   public.malta_private (user_id, payload) pessoal; policy user_id = auth.uid() e is_member()
+--   trigger malta_block_outsiders em auth.users  so e-mails de malta_members conseguem criar conta
+--   bucket privado storage "malta-diary"   fotos do diario; select/insert/update/delete so para membros
+--   malta_sync entrou na publication supabase_realtime
+-- Para trocar ou incluir um e-mail: update/insert em public.malta_members.

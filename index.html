@@ -313,6 +313,11 @@ details[open] summary{display:none}
 }
 .ph button svg{width:20px;height:20px;padding:5px;border-radius:50%;background:rgba(36,31,28,.6);color:#fff}
 textarea.field{min-height:96px;resize:none;line-height:1.4}
+.other-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(94,111,53,.10)}
+.other-note small{display:block;font-size:.75rem;color:var(--olive);font-weight:600;margin-bottom:2px}
+.other-note p{font-size:.9375rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.ph-wait{position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%) 0 0/200% 100%;animation:shimmer 1.2s linear infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
 
 /* ---------- Checklist ---------- */
 .ring-card{display:flex;align-items:center;gap:16px}
@@ -657,11 +662,12 @@ body.locked main,body.locked .dock{display:none}
     <section class="glass card">
       <h2>Diário</h2>
       <select class="field" id="diaryDay" aria-label="Dia do diário"></select>
-      <textarea class="field" id="diaryNote" placeholder="Como foi o dia?" maxlength="1200" aria-label="Anotação do dia" style="margin-top:10px"></textarea>
+      <textarea class="field" id="diaryNote" placeholder="Como foi o dia?" maxlength="1200" aria-label="Minha anotação do dia" style="margin-top:10px"></textarea>
+      <div class="other-note" id="diaryOther" hidden><small id="diaryOtherWho"></small><p id="diaryOtherTxt"></p></div>
       <div class="photo-grid" id="photoGrid"></div>
       <input type="file" id="photoPick" accept="image/*" multiple hidden>
       <button class="btn soft" id="photoAdd" type="button" style="margin-top:10px">Adicionar fotos</button>
-      <p class="note" style="margin-top:8px">As fotos ficam só neste aparelho. As anotações são das duas.</p>
+      <p class="note" style="margin-top:8px">Cada uma escreve a sua anotação do dia. As duas veem as anotações e as fotos.</p>
     </section>
   </div>
 </div>
@@ -754,12 +760,12 @@ body.locked main,body.locked .dock{display:none}
 
     <section class="card form-gap">
       <h3>Perfil</h3>
-      <div class="seg" role="group" aria-label="Quem é você?" id="sheetWho">
+      <div id="sheetWhoWrap"><div class="seg" role="group" aria-label="Quem é você?" id="sheetWho">
         <button type="button" data-who="nana">Nana</button>
         <button type="button" data-who="dani">Dani</button>
-      </div>
+      </div></div>
       <input class="field" type="text" id="sheetName" placeholder="Como quer ser chamada" maxlength="24" aria-label="Nome" autocomplete="off">
-      <p class="note">Poupança e gastos “só meus” são de cada perfil. Roteiro, checklist e diário são das duas.</p>
+      <p class="note">Sua poupança e seus gastos “só meus” ficam só na sua conta. Roteiro, checklist, diário e gastos juntas são das duas.</p>
     </section>
 
     <section class="card">
@@ -775,7 +781,7 @@ body.locked main,body.locked .dock{display:none}
 
     <section class="card">
       <h3>Backup</h3>
-      <p class="note" style="margin-bottom:10px">Salve uma cópia dos dados ou traga os dados de outro aparelho. As fotos do diário não entram no backup.</p>
+      <p class="note" style="margin-bottom:10px">Salve uma cópia dos dados ou traga os dados de outro aparelho. As fotos do diário ficam na nuvem e não entram no arquivo.</p>
       <button class="btn soft" id="backupExport" type="button">Exportar backup</button>
       <button class="btn soft" id="backupImport" type="button">Importar backup</button>
       <input type="file" id="backupFile" accept="application/json,.json" hidden>
@@ -787,6 +793,7 @@ body.locked main,body.locked .dock{display:none}
     </section>
 
     <button class="btn plain" id="wipeBtn" type="button">Apagar dados deste aparelho</button>
+    <p class="note" id="appVersion" style="text-align:center;margin-top:6px"></p>
   </div>
 </div>
 
@@ -794,19 +801,21 @@ body.locked main,body.locked .dock{display:none}
 
 <script>
 'use strict';
-/* Sync opcional (Supabase). Vazio = app 100% local, sem tela de login.
-   A anon key e publica por definicao; quem protege os dados e o RLS (research/supabase/schema.sql). */
+/* Sync (Supabase). Vazio = app 100% local, sem tela de login.
+   A chave abaixo e publica por definicao; quem protege os dados e o RLS (research/supabase/malta_sync.sql). */
 const CONFIG = {
   supabaseUrl: 'https://gdwcpziredxssaqwwxtk.supabase.co',
   supabaseKey: 'sb_publishable_pN2x741M8NLBR5CboeBnxw_5TLpBX4f',
   trip: 'nana-dani',
+  bucket: 'malta-diary',
   google: false
 };
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '3.0.0';
 
 const $  = (s, c) => (c || document).querySelector(s);
 const $$ = (s, c) => Array.from((c || document).querySelectorAll(s));
 const NS = 'malta2027:';
+const NBSP = String.fromCharCode(160), EURO = String.fromCharCode(8364), DOT = ' ' + String.fromCharCode(183) + ' ';
 const ls = {
   get(k, fb){ try { const v = localStorage.getItem(NS + k); return v === null ? fb : JSON.parse(v); } catch (e) { return fb; } },
   set(k, v){ try { localStorage.setItem(NS + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
@@ -814,7 +823,6 @@ const ls = {
 };
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
-const clone = o => JSON.parse(JSON.stringify(o));
 const parseNum = s => {
   s = String(s == null ? '' : s).replace(/[^\d.,-]/g, '').trim();
   if (s.indexOf(',') > -1) s = s.replace(/\./g, '').replace(',', '.');
@@ -823,8 +831,8 @@ const parseNum = s => {
   return isFinite(v) ? v : 0;
 };
 const nf = (n, d) => (isFinite(n) ? n : 0).toLocaleString('pt-BR', {minimumFractionDigits: d, maximumFractionDigits: d});
-const eur = n => '€ ' + nf(n, Math.abs(n % 1) > 0.004 ? 2 : 0);
-const brl = n => 'R$ ' + nf(Math.round(n), 0);
+const eur = n => EURO + NBSP + nf(n, Math.abs(n % 1) > 0.004 ? 2 : 0);
+const brl = n => 'R$' + NBSP + nf(Math.round(n), 0);
 const WHO = {nana: 'Nana', dani: 'Dani'};
 const X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
 const dayMs = 86400000;
@@ -832,6 +840,7 @@ const atNoon = iso => new Date(iso + 'T12:00:00');
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const ddmm = d => ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2);
 const wkShort = d => d.toLocaleDateString('pt-BR', {weekday: 'short'}).replace('.', '');
+const plainText = s => String(s || '').normalize('NFD').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /* ---------- Toast ---------- */
 let toastTimer = null;
@@ -843,7 +852,7 @@ function toast(msg, actLabel, actFn){
   b.onclick = actFn ? () => { hideToast(); actFn(); } : null;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(hideToast, actLabel ? 5000 : 2600);
+  toastTimer = setTimeout(hideToast, actLabel ? 5000 : 2800);
 }
 function hideToast(){ $('#toast').classList.remove('show'); }
 
@@ -863,6 +872,13 @@ const CHECK_SEED = {
   mala: ['Adaptador de tomada tipo G', 'Roupa de banho e saída de praia', 'Sapato confortável para andar', 'Casaco leve para a noite', 'Protetor solar e labial', 'Remédios de uso contínuo e receita', 'Carregador e power bank', 'Mochila pequena para os passeios de barco', 'Saquinho impermeável para documentos na praia'],
   dinheiro: ['Abrir a conta global (Wise ou C6)', 'Testar o cartão com R$ 200 a 500', 'Declarar as contas no IRPF de 2027', 'Converter o CDI em 3 ou 4 parcelas a partir de junho de 2027', 'Revisar o IOF de 60 a 90 dias antes', 'Avisar os bancos da viagem', 'Definir o aporte mensal']
 };
+const GROUPS = Object.keys(CHECK_SEED);
+const OLD_ITINERARY = ['Chegada em Malta - check-in em Valletta', 'Valletta a pe: fortalezas, Upper Barrakka, museus', 'Mdina e Rabat - a cidade silenciosa', 'Comino e Blue Lagoon de barco', 'Dia livre em Valletta: compras e rooftop', 'Gozo: ferry Mgarr + Victoria e cidadela', 'Gozo: Ramla Bay e Dwejra Bay', 'Marsaxlokk - mercado de domingo e luzzo coloridos', 'Sliema e ferry para Valletta ao anoitecer', 'Hagar Qim e Mnajdra - templos pre-historicos', 'Dia de praia: St Peter\'s Pool', 'Valletta: museu de Bellas Artes e Co-Catetral', 'Senglea e Birgu (As tres cidades)', 'Dia livre: dormir mais tarde e cafe', 'Golden Bay / Gnejna', 'Compras + lembrancinhas', 'Valletta gastronomia: pastizzi e ftira', 'Pre-embarque: arrumar as malas', 'Ultimo dia: passeio final e jantar de despedida', 'Embarque de volta', 'Chegada ao Brasil'];
+const OLD_CHECK = {
+  docs: ['Passaporte valido de todas', 'ETIAS aprovado (travel-europe.europa.eu)', 'Seguro viagem Schengen (EUR 30 mil)', 'Passagens impressas e no celular', 'Reservas de hospedagem salvas offline', 'Copia digital dos documentos na nuvem', 'Carteira digital: cartao global fisico + virtual', 'Cartao de credito BR (backup) + aviso viagem'],
+  mala: ['Adaptador UK (Tipo G)', 'Roupa de banho e saida', 'Sapato confortavel para andar', 'Casaco leve (noite fresca)', 'Protetor solar e labial', 'Remedio de uso continuo + receita', 'Carregador + power bank', 'Mochila pequena para passeios de barco', 'Documentos numa necessaire ziploc (praia)'],
+  dinheiro: ['Abrir conta global (Wise ou C6)', 'Testar cartao com R$ 200-500', 'Declarar contas no IRPF de 2027', 'Converter CDI em 3-4 parcelas (a partir de jun/2027)', 'Revisar IOF 60-90 dias antes', 'Avisar os bancos da viagem', 'Definir aporte mensal no cofrinho']
+};
 const LINKS = [
   ['Visit Malta', 'Site oficial de turismo', 'https://www.visitmalta.com/'],
   ['KM Malta Airlines', 'Companhia aérea nacional', 'https://www.kmmaltairlines.com/'],
@@ -880,90 +896,162 @@ const PRESETS = {
 const DEFAULT_FX = 6.18;
 const PERSONAL_DEFAULT = {saved: 0, monthly: 800, meta: 10000, t: 0};
 
-function freshState(){
-  const groups = {};
-  Object.keys(CHECK_SEED).forEach(g => { groups[g] = CHECK_SEED[g].map(text => ({text: text, done: false})); });
+/* ---------- Modelo de dados ----------
+   Dois blocos, guardados e sincronizados separados:
+   - sh (compartilhado): embarque, roteiro, checklist, diario, fotos, gastos "juntas". As duas leem e gravam.
+   - pv (pessoal): poupanca e gastos "so meus". So a dona le e grava (linha propria no servidor).
+   Cada pedaco carrega a hora da ultima edicao (t) e apagados viram lapides (xxDel), entao juntar
+   dois estados nunca perde a edicao de ninguem: vence o mais recente de cada campo. */
+function freshShared(){
+  const checklist = {};
+  GROUPS.forEach(g => { checklist[g] = CHECK_SEED[g].map((text, i) => ({id: g + '-' + i, text: text, done: false, t: 0, c: i})); });
   return {
-    v: 2,
+    v: 3, by: '',
     start: {v: TRIP_START, t: 0},
     expenses: [], expDel: {},
-    itinerary: ITINERARY_SEED.map(title => ({title: title, note: '', done: false, t: 0})),
-    checklist: {t: 0, groups: groups},
+    itinerary: ITINERARY_SEED.map(title => ({title: title, tt: 0, note: '', tn: 0, done: false, td: 0})),
+    checklist: checklist, ckDel: {},
     diary: {},
-    personal: {}
+    photos: [], phDel: {}
   };
 }
-/* Garante o formato, venha de onde vier (disco, backup, servidor). */
-function sanitize(raw){
-  const base = freshState();
-  if (!raw || typeof raw !== 'object') return base;
-  const out = base;
-  if (raw.start && /^\d{4}-\d{2}-\d{2}$/.test(raw.start.v)) out.start = {v: raw.start.v, t: +raw.start.t || 0};
-  if (raw.expDel && typeof raw.expDel === 'object') Object.keys(raw.expDel).forEach(k => { out.expDel[k] = +raw.expDel[k] || 1; });
-  if (Array.isArray(raw.expenses)) out.expenses = raw.expenses.filter(e => e && e.id && isFinite(e.eur) && e.eur > 0).map(e => ({
+function freshPrivate(){ return {v: 3, personal: Object.assign({}, PERSONAL_DEFAULT), expenses: [], expDel: {}}; }
+const num = v => +v || 0;
+function cleanDel(raw){
+  const out = {};
+  if (raw && typeof raw === 'object') Object.keys(raw).sort().forEach(k => { out[k] = num(raw[k]) || 1; });
+  return out;
+}
+function cleanExpenses(raw, del, scope){
+  if (!Array.isArray(raw)) return [];
+  const seen = {};
+  return raw.filter(e => e && e.id && !del[e.id] && !seen[e.id] && (seen[e.id] = 1) && isFinite(e.eur) && e.eur > 0).map(e => ({
     id: String(e.id), desc: String(e.desc || '').slice(0, 80), eur: +e.eur,
     payer: ['nana', 'dani', 'ambas'].indexOf(e.payer) > -1 ? e.payer : 'ambas',
-    scope: e.scope === 'mine' ? 'mine' : 'shared', at: +e.at || Date.now()
+    scope: scope, at: num(e.at) || 1
+  })).sort((x, y) => x.at - y.at || (x.id < y.id ? -1 : 1));
+}
+function sanitizeShared(raw){
+  const out = freshShared();
+  if (!raw || typeof raw !== 'object') return out;
+  out.by = WHO[raw.by] ? raw.by : '';
+  if (raw.start && /^\d{4}-\d{2}-\d{2}$/.test(raw.start.v)) out.start = {v: raw.start.v, t: num(raw.start.t)};
+  out.expDel = cleanDel(raw.expDel);
+  out.expenses = cleanExpenses(raw.expenses, out.expDel, 'shared');
+  if (Array.isArray(raw.itinerary) && raw.itinerary.length) out.itinerary = raw.itinerary.slice(0, 60).map(r => r || {}).map(r => ({
+    title: String(r.title || '').slice(0, 120), tt: num(r.tt), note: String(r.note || '').slice(0, 200), tn: num(r.tn), done: !!r.done, td: num(r.td)
   }));
-  if (Array.isArray(raw.itinerary) && raw.itinerary.length) out.itinerary = raw.itinerary.slice(0, 60).map(r => ({
-    title: String((r && r.title) || '').slice(0, 120), note: String((r && r.note) || '').slice(0, 200), done: !!(r && r.done), t: +(r && r.t) || 0
-  }));
-  if (raw.checklist && raw.checklist.groups && typeof raw.checklist.groups === 'object'){
-    const g2 = {};
-    Object.keys(CHECK_SEED).forEach(g => {
-      const arr = raw.checklist.groups[g];
-      g2[g] = Array.isArray(arr) ? arr.map(i => ({text: String((i && i.text) || '').slice(0, 90), done: !!(i && i.done)})).filter(i => i.text) : base.checklist.groups[g];
-    });
-    out.checklist = {t: +raw.checklist.t || 0, groups: g2};
+  out.ckDel = cleanDel(raw.ckDel);
+  if (raw.checklist && typeof raw.checklist === 'object') GROUPS.forEach(g => {
+    const arr = raw.checklist[g], seen = {};
+    if (!Array.isArray(arr)) return;
+    out.checklist[g] = arr.filter(i => i && i.id && i.text && !out.ckDel[i.id] && !seen[i.id] && (seen[i.id] = 1)).map(i => ({
+      id: String(i.id), text: String(i.text).slice(0, 90), done: !!i.done, t: num(i.t), c: num(i.c)
+    })).sort((x, y) => x.c - y.c || (x.id < y.id ? -1 : 1));
+  });
+  if (raw.diary && typeof raw.diary === 'object') Object.keys(raw.diary).sort().forEach(k => {
+    const d = raw.diary[k], day = {};
+    if (!d || typeof d !== 'object') return;
+    ['nana', 'dani'].forEach(w => { if (d[w] && typeof d[w] === 'object') day[w] = {note: String(d[w].note || '').slice(0, 1200), t: num(d[w].t)}; });
+    if (day.nana || day.dani) out.diary[k] = day;
+  });
+  out.phDel = cleanDel(raw.phDel);
+  if (Array.isArray(raw.photos)){
+    const seen = {};
+    out.photos = raw.photos.filter(p => p && p.id && !out.phDel[p.id] && !seen[p.id] && (seen[p.id] = 1)).map(p => ({
+      id: String(p.id), day: Math.max(0, Math.round(num(p.day))), by: WHO[p.by] ? p.by : '', at: num(p.at) || 1
+    })).sort((x, y) => x.at - y.at || (x.id < y.id ? -1 : 1));
   }
-  if (raw.diary && typeof raw.diary === 'object') Object.keys(raw.diary).forEach(k => {
-    const d = raw.diary[k]; if (!d) return;
-    out.diary[k] = {note: String(d.note || '').slice(0, 1200), by: String(d.by || '').slice(0, 24), t: +d.t || 0};
-  });
-  if (raw.personal && typeof raw.personal === 'object') ['nana', 'dani'].forEach(w => {
-    const p = raw.personal[w]; if (!p) return;
-    out.personal[w] = {saved: Math.max(0, +p.saved || 0), monthly: Math.max(0, +p.monthly || 0), meta: Math.max(0, +p.meta || 0), t: +p.t || 0};
-  });
   return out;
 }
-const newer = (a, b) => (b && (!a || (b.t || 0) > (a.t || 0))) ? b : a;
-/* Junta dois estados sem perder nada: o mais recente de cada parte vence. */
-function mergeState(a, b){
-  a = sanitize(a); b = sanitize(b);
-  const out = freshState();
-  out.start = newer(a.start, b.start);
-  out.expDel = Object.assign({}, a.expDel, b.expDel);
-  const map = new Map();
-  a.expenses.concat(b.expenses).forEach(e => { if (!out.expDel[e.id]) map.set(e.id, e); });
-  out.expenses = Array.from(map.values()).sort((x, y) => x.at - y.at);
-  const n = Math.max(a.itinerary.length, b.itinerary.length);
+function sanitizePrivate(raw){
+  const out = freshPrivate();
+  if (!raw || typeof raw !== 'object') return out;
+  const p = raw.personal;
+  if (p && typeof p === 'object') out.personal = {saved: Math.max(0, num(p.saved)), monthly: Math.max(0, num(p.monthly)), meta: Math.max(0, num(p.meta)), t: num(p.t)};
+  out.expDel = cleanDel(raw.expDel);
+  out.expenses = cleanExpenses(raw.expenses, out.expDel, 'mine');
+  return out;
+}
+/* Ultima edicao vence. No empate de horario, um criterio fixo decide, para os dois aparelhos chegarem ao mesmo resultado. */
+function lww(av, at, bv, bt){
+  if (bt > at) return [bv, bt];
+  if (bt < at) return [av, at];
+  return JSON.stringify(bv) > JSON.stringify(av) ? [bv, bt] : [av, at];
+}
+function mergeDel(a, b){
+  const out = Object.assign({}, a);
+  Object.keys(b).forEach(k => { out[k] = Math.max(out[k] || 0, b[k]); });
+  return out;
+}
+function mergeShared(a, b){
+  a = sanitizeShared(a); b = sanitizeShared(b);
+  const out = freshShared();
+  const st = lww(a.start.v, a.start.t, b.start.v, b.start.t);
+  out.start = {v: st[0], t: st[1]};
+  out.expDel = mergeDel(a.expDel, b.expDel);
+  out.expenses = a.expenses.concat(b.expenses);
   out.itinerary = [];
-  for (let i = 0; i < n; i++) out.itinerary.push(newer(a.itinerary[i], b.itinerary[i]));
-  out.checklist = newer(a.checklist, b.checklist);
-  out.diary = {};
-  Object.keys(Object.assign({}, a.diary, b.diary)).forEach(k => { out.diary[k] = newer(a.diary[k], b.diary[k]); });
-  out.personal = {};
-  ['nana', 'dani'].forEach(w => { const p = newer(a.personal[w], b.personal[w]); if (p) out.personal[w] = p; });
-  return out;
+  for (let i = 0; i < Math.max(a.itinerary.length, b.itinerary.length); i++){
+    const x = a.itinerary[i], y = b.itinerary[i];
+    if (!x || !y){ out.itinerary.push(x || y); continue; }
+    const ti = lww(x.title, x.tt, y.title, y.tt), no = lww(x.note, x.tn, y.note, y.tn), dn = lww(x.done, x.td, y.done, y.td);
+    out.itinerary.push({title: ti[0], tt: ti[1], note: no[0], tn: no[1], done: dn[0], td: dn[1]});
+  }
+  out.ckDel = mergeDel(a.ckDel, b.ckDel);
+  GROUPS.forEach(g => {
+    const map = new Map();
+    a.checklist[g].concat(b.checklist[g]).forEach(i => {
+      const cur = map.get(i.id);
+      if (!cur){ map.set(i.id, i); return; }
+      const pick = lww([cur.text, cur.done], cur.t, [i.text, i.done], i.t);
+      map.set(i.id, {id: i.id, text: pick[0][0], done: pick[0][1], t: pick[1], c: Math.min(cur.c, i.c)});
+    });
+    out.checklist[g] = Array.from(map.values());
+  });
+  Object.keys(Object.assign({}, a.diary, b.diary)).forEach(k => {
+    const day = {};
+    ['nana', 'dani'].forEach(w => {
+      const x = (a.diary[k] || {})[w], y = (b.diary[k] || {})[w];
+      if (x && y){ const p = lww(x.note, x.t, y.note, y.t); day[w] = {note: p[0], t: p[1]}; }
+      else if (x || y) day[w] = x || y;
+    });
+    out.diary[k] = day;
+  });
+  out.phDel = mergeDel(a.phDel, b.phDel);
+  out.photos = a.photos.concat(b.photos);
+  return sanitizeShared(out);
 }
+function mergePrivate(a, b){
+  a = sanitizePrivate(a); b = sanitizePrivate(b);
+  const out = freshPrivate();
+  out.personal = b.personal.t > a.personal.t ? b.personal : a.personal.t > b.personal.t ? a.personal
+    : (JSON.stringify(b.personal) > JSON.stringify(a.personal) ? b.personal : a.personal);
+  out.expDel = mergeDel(a.expDel, b.expDel);
+  out.expenses = a.expenses.concat(b.expenses);
+  return sanitizePrivate(out);
+}
+const sameShared = (a, b) => JSON.stringify(Object.assign({}, a, {by: ''})) === JSON.stringify(Object.assign({}, b, {by: ''}));
 
-/* ---------- Estado ---------- */
-let S = null;
-let prefs = Object.assign({profile: null, tab: 'inicio', fxManual: DEFAULT_FX, liveFx: true, fxLive: null, wx: null, lastSync: 0}, ls.get('prefs', {}));
+/* ---------- Estado no aparelho ---------- */
+let SH = null, PV = null;
+let prefs = Object.assign({profile: null, uid: '', tab: 'inicio', fxManual: DEFAULT_FX, liveFx: true, fxLive: null, wx: null, lastSync: 0, pendingUp: []}, ls.get('prefs', {}));
 function savePrefs(){ ls.set('prefs', prefs); }
 function me(){ return prefs.profile && WHO[prefs.profile.who] ? prefs.profile.who : 'nana'; }
+function other(){ return me() === 'nana' ? 'dani' : 'nana'; }
 function myName(){ return (prefs.profile && prefs.profile.name) || WHO[me()]; }
-function mine(){ return Object.assign({}, PERSONAL_DEFAULT, S.personal[me()] || {}); }
-function setMine(patch){ S.personal[me()] = Object.assign(mine(), patch, {t: Date.now()}); commit(); }
+function mine(){ return PV.personal; }
+function setMine(patch){ PV.personal = Object.assign({}, PV.personal, patch, {t: Date.now()}); commit(); }
+function saveLocal(){ return ls.set('v3', {sh: SH, pv: PV}); }
 function commit(){
-  if (!ls.set('v2', S)) toast('Sem espaço no aparelho para salvar.');
+  if (!saveLocal()) toast('Sem espaço no aparelho para salvar.');
   scheduleSync();
 }
 
-/* Migra os dados da versao anterior (chaves soltas no localStorage). */
+/* v1 (chaves soltas) -> formato v2 */
 function migrateV1(){
   const g = (k, fb) => ls.get(k, fb);
-  const st = freshState();
+  const st = {start: null, expenses: [], itinerary: null, checklist: null, diary: {}, personal: {}};
   let found = false;
   const oldProfile = g('profile', null);
   if (oldProfile && WHO[oldProfile.who] && !prefs.profile){ prefs.profile = {who: oldProfile.who, name: String(oldProfile.name || '').slice(0, 24)}; found = true; }
@@ -975,14 +1063,14 @@ function migrateV1(){
   if (Array.isArray(itin) && itin.length){
     st.itinerary = itin.map((r, i) => {
       const edited = r && (r.done || r.note || plainText(r.title) !== plainText(OLD_ITINERARY[i] || ''));
-      return edited || !st.itinerary[i] ? Object.assign({}, r, {t: 1}) : st.itinerary[i];
+      return edited || !ITINERARY_SEED[i] ? Object.assign({}, r, {t: 1}) : {title: ITINERARY_SEED[i], note: '', done: false, t: 0};
     });
     found = true;
   }
   const ck = g('sh:checklist', g('checklist', null));
   if (ck && typeof ck === 'object'){
     const groups = {};
-    Object.keys(CHECK_SEED).forEach(k => {
+    GROUPS.forEach(k => {
       groups[k] = (Array.isArray(ck[k]) ? ck[k] : []).map(item => {
         const text = typeof item === 'string' ? item : String((item && item.text) || '');
         const at = OLD_CHECK[k].findIndex(o => plainText(o) === plainText(text));
@@ -992,12 +1080,11 @@ function migrateV1(){
     st.checklist = {t: 1, groups: groups}; found = true;
   }
   const diary = g('sh:diary', null);
-  const oldPhotos = [];
   if (diary && typeof diary === 'object'){
     Object.keys(diary).forEach(k => {
       const d = diary[k] || {};
-      if (d.note) st.diary[k] = {note: d.note, by: d.by || '', t: 1};
-      if (Array.isArray(d.photos) && d.photos.length) oldPhotos.push([k, d.photos]);
+      if (d.note) st.diary[k] = {note: d.note, t: 1};
+      if (Array.isArray(d.photos) && d.photos.length) legacyPhotos.push([k, d.photos]);
     });
     found = true;
   }
@@ -1007,68 +1094,103 @@ function migrateV1(){
   });
   const fxm = g('fxManual', null); if (+fxm > 0) prefs.fxManual = +fxm;
   const lfx = g('liveFx', null); if (typeof lfx === 'boolean') prefs.liveFx = lfx;
-  if (oldPhotos.length) migratePhotos(oldPhotos);
-  return found ? sanitize(st) : null;
+  return found ? st : null;
 }
-const OLD_ITINERARY = ['Chegada em Malta - check-in em Valletta', 'Valletta a pe: fortalezas, Upper Barrakka, museus', 'Mdina e Rabat - a cidade silenciosa', 'Comino e Blue Lagoon de barco', 'Dia livre em Valletta: compras e rooftop', 'Gozo: ferry Mgarr + Victoria e cidadela', 'Gozo: Ramla Bay e Dwejra Bay', 'Marsaxlokk - mercado de domingo e luzzo coloridos', 'Sliema e ferry para Valletta ao anoitecer', 'Hagar Qim e Mnajdra - templos pre-historicos', 'Dia de praia: St Peter\'s Pool', 'Valletta: museu de Bellas Artes e Co-Catetral', 'Senglea e Birgu (As tres cidades)', 'Dia livre: dormir mais tarde e cafe', 'Golden Bay / Gnejna', 'Compras + lembrancinhas', 'Valletta gastronomia: pastizzi e ftira', 'Pre-embarque: arrumar as malas', 'Ultimo dia: passeio final e jantar de despedida', 'Embarque de volta', 'Chegada ao Brasil'];
-const OLD_CHECK = {
-  docs: ['Passaporte valido de todas', 'ETIAS aprovado (travel-europe.europa.eu)', 'Seguro viagem Schengen (EUR 30 mil)', 'Passagens impressas e no celular', 'Reservas de hospedagem salvas offline', 'Copia digital dos documentos na nuvem', 'Carteira digital: cartao global fisico + virtual', 'Cartao de credito BR (backup) + aviso viagem'],
-  mala: ['Adaptador UK (Tipo G)', 'Roupa de banho e saida', 'Sapato confortavel para andar', 'Casaco leve (noite fresca)', 'Protetor solar e labial', 'Remedio de uso continuo + receita', 'Carregador + power bank', 'Mochila pequena para passeios de barco', 'Documentos numa necessaire ziploc (praia)'],
-  dinheiro: ['Abrir conta global (Wise ou C6)', 'Testar cartao com R$ 200-500', 'Declarar contas no IRPF de 2027', 'Converter CDI em 3-4 parcelas (a partir de jun/2027)', 'Revisar IOF 60-90 dias antes', 'Avisar os bancos da viagem', 'Definir aporte mensal no cofrinho']
-};
-function plainText(s){ return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase(); }
+/* v2 (um bloco so) -> v3 (compartilhado + pessoal) */
+function fromV2(v2){
+  const sh = freshShared(), pv = freshPrivate(), w = me();
+  if (v2.start && v2.start.v) sh.start = {v: v2.start.v, t: num(v2.start.t)};
+  sh.expDel = Object.assign({}, v2.expDel);
+  (v2.expenses || []).forEach(e => {
+    if (!e || !e.id) return;
+    if (e.scope === 'mine'){ if (e.payer === w) pv.expenses.push(e); }
+    else sh.expenses.push(e);
+  });
+  if (Array.isArray(v2.itinerary) && v2.itinerary.length) sh.itinerary = v2.itinerary.map(r => {
+    const t = num(r && r.t);
+    return {title: (r && r.title) || '', tt: t, note: (r && r.note) || '', tn: t, done: !!(r && r.done), td: t};
+  });
+  const ck = v2.checklist;
+  if (ck && ck.groups && num(ck.t) > 0) GROUPS.forEach(g => {
+    const used = {};
+    sh.checklist[g] = (ck.groups[g] || []).map((item, i) => {
+      const at = CHECK_SEED[g].findIndex((s, si) => !used[si] && plainText(s) === plainText(item.text));
+      if (at > -1) used[at] = 1;
+      return {id: at > -1 ? g + '-' + at : uid(), text: item.text, done: !!item.done, t: item.done || at < 0 ? num(ck.t) : 0, c: at > -1 ? at : 1000 + i};
+    });
+    CHECK_SEED[g].forEach((s, si) => { if (!used[si]) sh.ckDel[g + '-' + si] = num(ck.t); });
+  });
+  Object.keys(v2.diary || {}).forEach(k => {
+    const d = v2.diary[k];
+    if (d && d.note){ sh.diary[k] = {}; sh.diary[k][w] = {note: d.note, t: num(d.t) || 1}; }
+  });
+  if (v2.personal && v2.personal[w]) pv.personal = Object.assign({}, PERSONAL_DEFAULT, v2.personal[w]);
+  return {sh: sanitizeShared(sh), pv: sanitizePrivate(pv)};
+}
+const legacyPhotos = [];
 function loadState(){
-  const v2 = ls.get('v2', null);
-  if (v2){ S = sanitize(v2); return; }
-  S = migrateV1() || freshState();
-  ls.set('v2', S);
-  savePrefs();
+  const v3 = ls.get('v3', null);
+  if (v3){ SH = sanitizeShared(v3.sh); PV = sanitizePrivate(v3.pv); return; }
+  const v2 = ls.get('v2', null) || migrateV1();
+  const st = v2 ? fromV2(v2) : {sh: freshShared(), pv: freshPrivate()};
+  SH = st.sh; PV = st.pv;
+  saveLocal(); savePrefs();
   try {
-    Object.keys(localStorage).filter(k => k.indexOf(NS) === 0 && k !== NS + 'v2' && k !== NS + 'prefs').forEach(k => localStorage.removeItem(k));
+    Object.keys(localStorage).filter(k => k.indexOf(NS) === 0 && k !== NS + 'v3' && k !== NS + 'prefs').forEach(k => localStorage.removeItem(k));
   } catch (e) {}
 }
 
-/* ---------- Fotos do diario (IndexedDB, so no aparelho) ---------- */
+/* ---------- Fotos do diario: copia no aparelho (IndexedDB) + nuvem ---------- */
 let idbP = null;
 function idb(){
   if (idbP) return idbP;
   idbP = new Promise((res, rej) => {
     if (!window.indexedDB){ rej(new Error('idb')); return; }
-    const r = indexedDB.open('malta2027', 1);
-    r.onupgradeneeded = () => r.result.createObjectStore('photos');
+    const r = indexedDB.open('malta2027', 2);
+    r.onupgradeneeded = () => {
+      const db = r.result;
+      if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos');
+      if (!db.objectStoreNames.contains('ph')) db.createObjectStore('ph');
+    };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   });
   return idbP;
 }
-async function photosGet(day){
-  try {
-    const db = await idb();
-    return await new Promise((res, rej) => {
-      const q = db.transaction('photos').objectStore('photos').get(String(day));
-      q.onsuccess = () => res(Array.isArray(q.result) ? q.result : []);
-      q.onerror = () => rej(q.error);
-    });
-  } catch (e) { return []; }
-}
-async function photosSet(day, arr){
-  const db = await idb();
-  return new Promise((res, rej) => {
-    const tx = db.transaction('photos', 'readwrite');
-    tx.objectStore('photos').put(arr, String(day));
-    tx.oncomplete = () => res();
+function idbReq(store, mode, fn){
+  return idb().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(store, mode), q = fn(tx.objectStore(store));
+    tx.oncomplete = () => res(q && q.result);
     tx.onerror = tx.onabort = () => rej(tx.error);
+  }));
+}
+const blobGet = id => idbReq('ph', 'readonly', s => s.get(id)).catch(() => null);
+const blobPut = (id, blob) => idbReq('ph', 'readwrite', s => s.put(blob, id));
+const blobDel = id => idbReq('ph', 'readwrite', s => s.delete(id)).catch(() => {});
+function registerPhoto(blob, day){
+  const id = uid();
+  return blobPut(id, blob).then(() => {
+    SH.photos.push({id: id, day: day, by: me(), at: Date.now()});
+    prefs.pendingUp.push(id);
   });
 }
-async function migratePhotos(list){
-  for (const pair of list){
-    try {
-      const blobs = [];
-      for (const src of pair[1]) blobs.push(await (await fetch(src)).blob());
-      await photosSet(pair[0], blobs);
-    } catch (e) {}
+/* Fotos das versoes antigas (por dia, so no aparelho) entram no formato novo. */
+async function migrateOldPhotos(){
+  let changed = false;
+  for (const pair of legacyPhotos.splice(0)){
+    for (const src of pair[1]){
+      try { await registerPhoto(await (await fetch(src)).blob(), +pair[0] || 0); changed = true; } catch (e) {}
+    }
   }
-  renderPhotos();
+  try {
+    const keys = await idbReq('photos', 'readonly', s => s.getAllKeys());
+    for (const k of keys || []){
+      const arr = await idbReq('photos', 'readonly', s => s.get(k));
+      for (const b of Array.isArray(arr) ? arr : []){ await registerPhoto(b, +k || 0); changed = true; }
+    }
+    if (keys && keys.length) await idbReq('photos', 'readwrite', s => s.clear());
+  } catch (e) {}
+  if (changed){ savePrefs(); commit(); renderPhotos(); }
 }
 
 /* ---------- Abas ---------- */
@@ -1143,7 +1265,7 @@ async function refreshFx(force){
 }
 function renderRate(){
   const q = prefs.liveFx ? fxCache() : null;
-  $('#fxVal').textContent = 'R$ ' + nf(fx(), 2);
+  $('#fxVal').textContent = 'R$' + NBSP + nf(fx(), 2);
   $('#fxMode').textContent = q ? 'ao vivo' : 'manual';
   $('#fxToggle').checked = !!prefs.liveFx;
   $('#fxManualRow').hidden = !!prefs.liveFx;
@@ -1151,16 +1273,16 @@ function renderRate(){
   if (!prefs.liveFx) note = 'Usando a cotação que você digitou.';
   else if (q) note = 'Fonte: ' + (q.src || 'ExchangeRate-API') + '. Atualizada em ' + new Date(q.at).toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) + '.';
   else if (fxBusy) note = 'Buscando a cotação…';
-  else note = 'Sem conexão agora. Usando R$ ' + nf(fx(), 2) + ' até a cotação voltar.';
+  else note = 'Sem conexão agora. Usando R$' + NBSP + nf(fx(), 2) + ' até a cotação voltar.';
   $('#fxNote').textContent = note;
 }
 $('#fxToggle').addEventListener('change', e => { prefs.liveFx = e.target.checked; savePrefs(); renderMoney(); refreshFx(true); });
 const showFx = bindNum('#inpFx', () => prefs.fxManual, v => { prefs.fxManual = v > 0 ? v : DEFAULT_FX; savePrefs(); renderMoney(); }, v => nf(v, 2));
 
 /* ---------- Inicio: contagem e poupanca ---------- */
-function tripDays(){ return S.itinerary.length; }
+function tripDays(){ return SH.itinerary.length; }
 function renderCountdown(){
-  const start = atNoon(S.start.v);
+  const start = atNoon(SH.start.v);
   const now = new Date(); now.setHours(12, 0, 0, 0);
   const diff = Math.round((start - now) / dayMs);
   let big, lbl;
@@ -1172,10 +1294,10 @@ function renderCountdown(){
   const end = addDays(start, tripDays() - 1);
   $('#cdDates').textContent = 'De ' + start.toLocaleDateString('pt-BR', {weekday: 'long', day: 'numeric', month: 'long'}) +
     ' a ' + end.toLocaleDateString('pt-BR', {day: 'numeric', month: 'long', year: 'numeric'}) + '.';
-  $('#inpStart').value = S.start.v;
+  if (document.activeElement !== $('#inpStart')) $('#inpStart').value = SH.start.v;
 }
 function monthsLeft(){
-  const today = new Date(), end = atNoon(S.start.v);
+  const today = new Date(), end = atNoon(SH.start.v);
   return Math.max(0, (end.getFullYear() - today.getFullYear()) * 12 + (end.getMonth() - today.getMonth()));
 }
 function renderSavings(){
@@ -1209,14 +1331,13 @@ function renderConverter(){
 }
 function renderMoney(){ renderRate(); showFx(); showBRL(); renderConverter(); renderSavings(); renderBudget(); }
 
-/* ---------- Orcamento ---------- */
+/* ---------- Gastos ---------- */
 let payerSel = 'nana', scopeSel = 'shared';
 bindSeg($('#payerSeg'), 'payer', v => { payerSel = v; });
 bindSeg($('#scopeSeg'), 'scope', v => { scopeSel = v; $('#payerWrap').hidden = v === 'mine'; });
-const sharedExp = () => S.expenses.filter(e => e.scope !== 'mine');
 function settlement(){
   let nana = 0, dani = 0;
-  sharedExp().forEach(e => {
+  SH.expenses.forEach(e => {
     if (e.payer === 'nana') nana += e.eur;
     else if (e.payer === 'dani') dani += e.eur;
     else { nana += e.eur / 2; dani += e.eur / 2; }
@@ -1234,8 +1355,8 @@ function renderBudget(){
   $('#settleTxt').textContent = st[0];
   $('#settleSub').textContent = st[1];
   $('#settleIcon').innerHTML = quit ? '<path d="M20 7L9.5 17.5 4 12"/>' : '<path d="M7 8h12l-3-3M17 16H5l3 3"/>';
-  const shared = sharedExp().reduce((s, e) => s + e.eur, 0);
-  const personal = S.expenses.filter(e => e.scope === 'mine' && e.payer === me()).reduce((s, e) => s + e.eur, 0);
+  const shared = SH.expenses.reduce((s, e) => s + e.eur, 0);
+  const personal = PV.expenses.reduce((s, e) => s + e.eur, 0);
   const spent = shared / 2 + personal;
   const budget = mine().meta / fx();
   $('#bMine').textContent = eur(spent);
@@ -1243,13 +1364,13 @@ function renderBudget(){
   $('#bFill').style.width = (budget > 0 ? Math.min(100, spent / budget * 100) : 0) + '%';
   $('#bShared').textContent = eur(shared);
   $('#bPersonal').textContent = eur(personal);
-  const visible = S.expenses.filter(e => e.scope !== 'mine' || e.payer === me());
+  const visible = SH.expenses.concat(PV.expenses).sort((x, y) => y.at - x.at);
   $('#expEmpty').hidden = visible.length > 0;
-  $('#expenseList').innerHTML = visible.slice().reverse().map(e => {
+  $('#expenseList').innerHTML = visible.map(e => {
     const who = e.scope === 'mine' ? 'Só meu' : e.payer === 'ambas' ? 'Meio a meio' : WHO[e.payer] + ' pagou';
-    return '<div class="expense"><div><b>' + esc(e.desc) + '</b><small>' + who + ' · ' + new Date(e.at).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'}) + '</small></div>' +
+    return '<div class="expense"><div><b>' + esc(e.desc) + '</b><small>' + who + DOT + new Date(e.at).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'}) + '</small></div>' +
       '<span class="eur">' + eur(e.eur) + '</span>' +
-      '<button type="button" class="del" data-del="' + esc(e.id) + '" aria-label="Remover ' + esc(e.desc) + '">' + X_SVG + '</button></div>';
+      '<button type="button" class="del" data-del="' + esc(e.id) + '" data-scope="' + e.scope + '" aria-label="Remover ' + esc(e.desc) + '">' + X_SVG + '</button></div>';
   }).join('');
 }
 $('#expForm').addEventListener('submit', e => {
@@ -1257,24 +1378,24 @@ $('#expForm').addEventListener('submit', e => {
   const desc = $('#expDesc').value.trim(), value = parseNum($('#expEur').value);
   if (!desc){ $('#expDesc').focus(); toast('Descreva o gasto.'); return; }
   if (value <= 0){ $('#expEur').focus(); toast('Digite o valor em euros.'); return; }
-  S.expenses.push({id: uid(), desc: desc.slice(0, 80), eur: Math.round(value * 100) / 100, payer: scopeSel === 'mine' ? me() : payerSel, scope: scopeSel, at: Date.now()});
+  const item = {id: uid(), desc: desc.slice(0, 80), eur: Math.round(value * 100) / 100, payer: scopeSel === 'mine' ? me() : payerSel, scope: scopeSel, at: Date.now()};
+  (scopeSel === 'mine' ? PV : SH).expenses.push(item);
   commit();
   $('#expDesc').value = ''; $('#expEur').value = '';
   if (document.activeElement) document.activeElement.blur();
   renderBudget();
-  toast('Gasto adicionado.');
+  toast(scopeSel === 'mine' ? 'Gasto adicionado. Só você vê.' : 'Gasto adicionado.');
 });
 $('#expDesc').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); $('#expEur').focus(); } });
 $('#expenseList').addEventListener('click', e => {
   const btn = e.target.closest('[data-del]'); if (!btn) return;
-  const i = S.expenses.findIndex(x => x.id === btn.dataset.del); if (i < 0) return;
-  const gone = S.expenses.splice(i, 1)[0];
-  S.expDel[gone.id] = Date.now();
+  const box = btn.dataset.scope === 'mine' ? PV : SH;
+  const i = box.expenses.findIndex(x => x.id === btn.dataset.del); if (i < 0) return;
+  const gone = box.expenses.splice(i, 1)[0];
+  box.expDel[gone.id] = Date.now();
   commit(); renderBudget();
   toast('Gasto removido.', 'Desfazer', () => {
-    delete S.expDel[gone.id];
-    gone.id = uid();
-    S.expenses.push(gone); S.expenses.sort((x, y) => x.at - y.at);
+    (gone.scope === 'mine' ? PV : SH).expenses.push(Object.assign({}, gone, {id: uid()}));
     commit(); renderBudget();
   });
 });
@@ -1283,8 +1404,18 @@ $('#expenseList').addEventListener('click', e => {
 function fit(el){ el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; }
 function fitAll(){ $$('#itinerary textarea').forEach(fit); }
 function renderItinerary(){
-  if ($('#itinerary').contains(document.activeElement)) return;
-  const start = atNoon(S.start.v), rows = S.itinerary;
+  const host = $('#itinerary'), start = atNoon(SH.start.v), rows = SH.itinerary;
+  const act = document.activeElement;
+  if (host.contains(act) && act.tagName === 'TEXTAREA'){
+    /* Ela esta digitando: atualiza so os outros campos, sem tirar o cursor. */
+    $$('textarea', host).forEach(t => {
+      const r = rows[+t.dataset.i]; if (!r || t === act) return;
+      const v = t.dataset.k === 'title' ? r.title : r.note;
+      if (t.value !== v){ t.value = v; fit(t); }
+    });
+    $$('.day', host).forEach((d, i) => d.classList.toggle('done', !!(rows[i] && rows[i].done)));
+    return;
+  }
   let html = '';
   for (let ws = 0; ws < rows.length; ws += 7){
     html += '<p class="group-title">Semana ' + (ws / 7 + 1) + '</p><section class="glass card" style="padding-top:8px;padding-bottom:8px"><div class="rows">';
@@ -1298,29 +1429,29 @@ function renderItinerary(){
     }
     html += '</div></section>';
   }
-  $('#itinerary').innerHTML = html;
+  host.innerHTML = html;
   fitAll();
 }
 $('#itinerary').addEventListener('input', e => {
-  const t = e.target, r = S.itinerary[+t.dataset.i]; if (!r || !t.dataset.k) return;
+  const t = e.target, r = SH.itinerary[+t.dataset.i]; if (!r || !t.dataset.k) return;
   const clean = t.value.replace(/\n/g, ' ');
   if (clean !== t.value) t.value = clean;
-  r[t.dataset.k] = clean; r.t = Date.now();
+  if (t.dataset.k === 'title'){ r.title = clean; r.tt = Date.now(); } else { r.note = clean; r.tn = Date.now(); }
   fit(t); commit();
 });
 $('#itinerary').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'TEXTAREA'){ e.preventDefault(); e.target.blur(); } });
 $('#itinerary').addEventListener('click', e => {
   const b = e.target.closest('[data-done]'); if (!b) return;
-  const r = S.itinerary[+b.dataset.done]; if (!r) return;
-  r.done = !r.done; r.t = Date.now();
+  const r = SH.itinerary[+b.dataset.done]; if (!r) return;
+  r.done = !r.done; r.td = Date.now();
   b.closest('.day').classList.toggle('done', r.done);
   b.setAttribute('aria-pressed', r.done ? 'true' : 'false');
   commit();
 });
 $('#inpStart').addEventListener('change', e => {
   const v = e.target.value;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)){ e.target.value = S.start.v; return; }
-  S.start = {v: v, t: Date.now()};
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)){ e.target.value = SH.start.v; return; }
+  SH.start = {v: v, t: Date.now()};
   commit(); renderCountdown(); renderSavings(); renderItinerary(); renderDiaryPicker();
 });
 
@@ -1340,7 +1471,7 @@ const PLACES = [
 ];
 const MAP_BOUNDS = [[14.17, 35.79], [14.59, 36.09]];
 const MAPLIBRE = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl';
-let mapObj = null, mapLoading = null, mapSel = PLACES[0], selMarker = null;
+let mapObj = null, mapLoading = null, mapSel = PLACES[0], selMarker = null, popup = null;
 function loadMapLib(){
   if (window.maplibregl) return Promise.resolve();
   if (mapLoading) return mapLoading;
@@ -1364,7 +1495,7 @@ async function initMap(){
       locale: {
         'CooperativeGesturesHandler.MobileHelpText': 'Use dois dedos para mover o mapa',
         'CooperativeGesturesHandler.WindowsHelpText': 'Use Ctrl + scroll para dar zoom',
-        'CooperativeGesturesHandler.MacHelpText': 'Use ⌘ + scroll para dar zoom'
+        'CooperativeGesturesHandler.MacHelpText': 'Use Cmd + scroll para dar zoom'
       }
     });
     mapObj.addControl(new maplibregl.NavigationControl({showCompass: false}), 'top-right');
@@ -1384,7 +1515,6 @@ async function initMap(){
     $('#mapNote').textContent = 'O mapa precisa de internet na primeira vez. Abra de novo quando tiver conexão.';
   }
 }
-let popup = null;
 function selectPlace(p, fly){
   mapSel = p;
   $('#mapNav').textContent = 'Rotas até ' + p.name;
@@ -1428,42 +1558,66 @@ $('#mapNav').addEventListener('click', () => {
   window.open(url, '_blank', 'noopener');
 });
 
-/* ---------- Diario ---------- */
-let diaryIdx = 0, photoUrls = [];
+/* ---------- Diario: cada uma escreve a sua anotacao do dia; as duas leem as duas ---------- */
+let diaryIdx = 0, photoUrls = [], photoRender = 0;
+const dayHasNote = i => { const d = SH.diary[i]; return !!(d && ((d.nana && d.nana.note) || (d.dani && d.dani.note))); };
 function renderDiaryPicker(){
-  const start = atNoon(S.start.v), sel = $('#diaryDay');
+  const start = atNoon(SH.start.v), sel = $('#diaryDay');
   if (diaryIdx >= tripDays()) diaryIdx = 0;
-  sel.innerHTML = S.itinerary.map((r, i) => '<option value="' + i + '">Dia ' + (i + 1) + ' · ' + ddmm(addDays(start, i)) + (S.diary[i] && S.diary[i].note ? ' •' : '') + '</option>').join('');
+  sel.innerHTML = SH.itinerary.map((r, i) => '<option value="' + i + '">Dia ' + (i + 1) + DOT + ddmm(addDays(start, i)) + (dayHasNote(i) ? ' ' + String.fromCharCode(8226) : '') + '</option>').join('');
   sel.value = String(diaryIdx);
 }
 function renderDiary(){
-  renderDiaryPicker();
-  const note = $('#diaryNote');
-  if (document.activeElement !== note) note.value = (S.diary[diaryIdx] && S.diary[diaryIdx].note) || '';
+  if (document.activeElement !== $('#diaryDay')) renderDiaryPicker();
+  const d = SH.diary[diaryIdx] || {}, note = $('#diaryNote');
+  if (document.activeElement !== note) note.value = (d[me()] && d[me()].note) || '';
+  const theirs = (d[other()] && d[other()].note) || '';
+  $('#diaryOther').hidden = !theirs;
+  $('#diaryOtherWho').textContent = WHO[other()] + ' escreveu';
+  $('#diaryOtherTxt').textContent = theirs;
   renderPhotos();
 }
 async function renderPhotos(){
-  const idx = diaryIdx, blobs = await photosGet(idx);
-  if (idx !== diaryIdx) return;
+  const idx = diaryIdx, run = ++photoRender;
+  const list = SH.photos.filter(p => p.day === idx);
+  const blobs = await Promise.all(list.map(p => blobGet(p.id)));
+  if (run !== photoRender) return;
   photoUrls.forEach(u => URL.revokeObjectURL(u));
-  photoUrls = blobs.map(b => URL.createObjectURL(b));
-  $('#photoGrid').innerHTML = photoUrls.map((u, i) => '<div class="ph"><img src="' + u + '" alt="Foto ' + (i + 1) + ' do dia ' + (idx + 1) + '"><button type="button" data-ph="' + i + '" aria-label="Remover foto ' + (i + 1) + '">' + X_SVG + '</button></div>').join('');
+  photoUrls = [];
+  $('#photoGrid').innerHTML = list.map((p, i) => {
+    let inner = '<span class="ph-wait" aria-label="Baixando foto"></span>';
+    if (blobs[i]){ const u = URL.createObjectURL(blobs[i]); photoUrls.push(u); inner = '<img src="' + u + '" alt="Foto ' + (i + 1) + ' do dia ' + (idx + 1) + '">'; }
+    return '<div class="ph">' + inner + '<button type="button" data-ph="' + esc(p.id) + '" aria-label="Remover foto ' + (i + 1) + '">' + X_SVG + '</button></div>';
+  }).join('');
+  const missing = list.filter((p, i) => !blobs[i]);
+  if (missing.length && cloudReady()){
+    let got = 0;
+    for (const p of missing){
+      try {
+        const r = await sb.storage.from(CONFIG.bucket).download(CONFIG.trip + '/' + p.id + '.jpg');
+        if (r.data){ await blobPut(p.id, r.data); got++; }
+      } catch (e) {}
+    }
+    if (got && run === photoRender) renderPhotos();
+  }
 }
 $('#diaryDay').addEventListener('change', e => { diaryIdx = +e.target.value || 0; $('#diaryNote').blur(); renderDiary(); });
 $('#diaryNote').addEventListener('input', e => {
-  const v = e.target.value.slice(0, 1200);
-  if (v) S.diary[diaryIdx] = {note: v, by: myName(), t: Date.now()};
-  else if (S.diary[diaryIdx]) S.diary[diaryIdx] = {note: '', by: myName(), t: Date.now()};
+  const day = SH.diary[diaryIdx] || (SH.diary[diaryIdx] = {});
+  day[me()] = {note: e.target.value.slice(0, 1200), t: Date.now()};
   commit();
 });
 $('#diaryNote').addEventListener('blur', renderDiaryPicker);
 $('#photoAdd').addEventListener('click', () => $('#photoPick').click());
-$('#photoGrid').addEventListener('click', async e => {
+$('#photoGrid').addEventListener('click', e => {
   const b = e.target.closest('[data-ph]'); if (!b) return;
-  const arr = await photosGet(diaryIdx);
-  arr.splice(+b.dataset.ph, 1);
-  try { await photosSet(diaryIdx, arr); } catch (err) {}
-  renderPhotos();
+  const id = b.dataset.ph, i = SH.photos.findIndex(p => p.id === id); if (i < 0) return;
+  SH.photos.splice(i, 1);
+  SH.phDel[id] = Date.now();
+  prefs.pendingUp = prefs.pendingUp.filter(x => x !== id); savePrefs();
+  blobDel(id);
+  if (cloudReady()) sb.storage.from(CONFIG.bucket).remove([CONFIG.trip + '/' + id + '.jpg']).catch(() => {});
+  commit(); renderPhotos();
 });
 function compressPhoto(file){
   return new Promise((resolve, reject) => {
@@ -1484,17 +1638,14 @@ const MAX_PHOTOS = 12;
 $('#photoPick').addEventListener('change', async e => {
   const files = Array.from(e.target.files || []); e.target.value = '';
   if (!files.length) return;
-  const idx = diaryIdx, arr = await photosGet(idx);
-  const room = MAX_PHOTOS - arr.length;
+  const idx = diaryIdx, room = MAX_PHOTOS - SH.photos.filter(p => p.day === idx).length;
   if (room <= 0){ toast('Limite de ' + MAX_PHOTOS + ' fotos por dia.'); return; }
   let failed = 0;
   for (const f of files.slice(0, room)){
-    try { arr.push(await compressPhoto(f)); } catch (err) { failed++; }
+    try { await registerPhoto(await compressPhoto(f), idx); } catch (err) { failed++; }
   }
-  try { await photosSet(idx, arr); }
-  catch (err) { toast('Não deu para salvar as fotos neste aparelho.'); return; }
-  renderPhotos();
-  if (failed) toast(failed === 1 ? 'Uma foto não pôde ser lida.' : failed + ' fotos não puderam ser lidas.');
+  savePrefs(); commit(); renderPhotos();
+  if (failed) toast(failed === 1 ? 'Uma foto não pôde ser salva.' : failed + ' fotos não puderam ser salvas.');
   else if (files.length > room) toast('Limite de ' + MAX_PHOTOS + ' fotos por dia.');
 });
 
@@ -1502,13 +1653,12 @@ $('#photoPick').addEventListener('change', async e => {
 let groupSel = 'docs';
 const CHECK_LABEL = {docs: 'Documentos', mala: 'Mala', dinheiro: 'Dinheiro'};
 bindSeg($('#groupTabs'), 'group', v => { groupSel = v; renderChecklist(); });
-function touchChecklist(){ S.checklist.t = Date.now(); commit(); renderChecklist(); }
 function renderChecklist(){
-  const groups = S.checklist.groups, tasks = groups[groupSel] || [];
-  $('#taskList').innerHTML = tasks.map((t, i) =>
-    '<div class="task"><label><input type="checkbox" data-i="' + i + '"' + (t.done ? ' checked' : '') + '><span class="check"></span><span>' + esc(t.text) + '</span></label>' +
-    '<button type="button" class="del" data-del="' + i + '" aria-label="Remover ' + esc(t.text) + '">' + X_SVG + '</button></div>').join('');
-  const all = Object.keys(groups).reduce((a, g) => a.concat(groups[g]), []);
+  const tasks = SH.checklist[groupSel] || [];
+  $('#taskList').innerHTML = tasks.map(t =>
+    '<div class="task"><label><input type="checkbox" data-id="' + esc(t.id) + '"' + (t.done ? ' checked' : '') + '><span class="check"></span><span>' + esc(t.text) + '</span></label>' +
+    '<button type="button" class="del" data-del="' + esc(t.id) + '" aria-label="Remover ' + esc(t.text) + '">' + X_SVG + '</button></div>').join('');
+  const all = GROUPS.reduce((a, g) => a.concat(SH.checklist[g]), []);
   const done = all.filter(t => t.done).length, pct = all.length ? done / all.length : 0;
   $('#ckRing').style.setProperty('--p', (pct * 100).toFixed(1));
   $('#ckPct').textContent = Math.round(pct * 100) + '%';
@@ -1516,23 +1666,29 @@ function renderChecklist(){
   $('#ckText').textContent = CHECK_LABEL[groupSel] + ': ' + tasks.filter(t => t.done).length + ' de ' + tasks.length;
 }
 $('#taskList').addEventListener('change', e => {
-  const t = S.checklist.groups[groupSel][+e.target.dataset.i]; if (!t) return;
-  t.done = e.target.checked; touchChecklist();
+  const t = SH.checklist[groupSel].find(x => x.id === e.target.dataset.id); if (!t) return;
+  t.done = e.target.checked; t.t = Date.now();
+  commit(); renderChecklist();
 });
 $('#taskList').addEventListener('click', e => {
   const btn = e.target.closest('[data-del]'); if (!btn) return;
-  const g = groupSel, i = +btn.dataset.del, gone = S.checklist.groups[g].splice(i, 1)[0];
-  if (!gone) return;
-  touchChecklist();
-  toast('Item removido.', 'Desfazer', () => { S.checklist.groups[g].splice(Math.min(i, S.checklist.groups[g].length), 0, gone); touchChecklist(); });
+  const g = groupSel, list = SH.checklist[g], i = list.findIndex(x => x.id === btn.dataset.del); if (i < 0) return;
+  const gone = list.splice(i, 1)[0];
+  SH.ckDel[gone.id] = Date.now();
+  commit(); renderChecklist();
+  toast('Item removido.', 'Desfazer', () => {
+    SH.checklist[g].push(Object.assign({}, gone, {id: uid(), t: Date.now()}));
+    SH.checklist[g].sort((x, y) => x.c - y.c);
+    commit(); renderChecklist();
+  });
 });
 $('#taskForm').addEventListener('submit', e => {
   e.preventDefault();
   const input = $('#inpTask'), text = input.value.trim();
   if (!text){ input.focus(); return; }
-  S.checklist.groups[groupSel].push({text: text.slice(0, 90), done: false});
+  SH.checklist[groupSel].push({id: uid(), text: text.slice(0, 90), done: false, t: Date.now(), c: Date.now()});
   input.value = '';
-  touchChecklist();
+  commit(); renderChecklist();
 });
 
 /* ---------- Links ---------- */
@@ -1578,18 +1734,17 @@ async function loadWeather(){
 
 /* ---------- PDF (impressao) ---------- */
 function exportPdf(){
-  const start = atNoon(S.start.v), st = settleText();
-  const shared = sharedExp().reduce((s, e) => s + e.eur, 0);
-  let h = '<h1>Malta 2027</h1><div class="sub">Nana e Dani · ' + tripDays() + ' dias a partir de ' + start.toLocaleDateString('pt-BR') + ' · gerado por ' + esc(myName()) + '</div>';
+  const start = atNoon(SH.start.v), st = settleText();
+  const shared = SH.expenses.reduce((s, e) => s + e.eur, 0);
+  let h = '<h1>Malta 2027</h1><div class="sub">Nana e Dani' + DOT + tripDays() + ' dias a partir de ' + start.toLocaleDateString('pt-BR') + DOT + 'gerado por ' + esc(myName()) + '</div>';
   h += '<h2>Roteiro</h2><table><thead><tr><th>Data</th><th>Dia</th><th>Plano</th><th>Anotações</th></tr></thead><tbody>';
-  S.itinerary.forEach((r, i) => {
-    h += '<tr><td>' + ddmm(addDays(start, i)) + '</td><td>' + (i + 1) + (r.done ? ' ✓' : '') + '</td><td>' + esc(r.title) + '</td><td class="obs">' + esc(r.note) + '</td></tr>';
+  SH.itinerary.forEach((r, i) => {
+    h += '<tr><td>' + ddmm(addDays(start, i)) + '</td><td>' + (i + 1) + (r.done ? ' (feito)' : '') + '</td><td>' + esc(r.title) + '</td><td class="obs">' + esc(r.note) + '</td></tr>';
   });
   h += '</tbody></table><h2>Gastos juntas</h2><div class="resumo"><div>Total <b>' + eur(shared) + '</b></div><div>Cada uma <b>' + eur(shared / 2) + '</b></div><div>Acerto <b>' + esc(st[0]) + '</b></div></div>';
-  const rows = sharedExp();
-  if (rows.length){
+  if (SH.expenses.length){
     h += '<table><thead><tr><th>Data</th><th>Descrição</th><th>Quem pagou</th><th>Valor</th></tr></thead><tbody>';
-    rows.forEach(e => { h += '<tr><td>' + new Date(e.at).toLocaleDateString('pt-BR') + '</td><td>' + esc(e.desc) + '</td><td>' + (e.payer === 'ambas' ? 'Meio a meio' : WHO[e.payer]) + '</td><td>' + eur(e.eur) + '</td></tr>'; });
+    SH.expenses.forEach(e => { h += '<tr><td>' + new Date(e.at).toLocaleDateString('pt-BR') + '</td><td>' + esc(e.desc) + '</td><td>' + (e.payer === 'ambas' ? 'Meio a meio' : WHO[e.payer]) + '</td><td>' + eur(e.eur) + '</td></tr>'; });
     h += '</tbody></table>';
   }
   $('#printDoc').innerHTML = h;
@@ -1598,12 +1753,15 @@ function exportPdf(){
 $('#btnPdf').addEventListener('click', exportPdf);
 
 /* ---------- Conta (sheet) ---------- */
+const SYNC_ON = !!(CONFIG.supabaseUrl && CONFIG.supabaseKey);
 let lastFocus = null;
 function openSheet(){
   lastFocus = document.activeElement;
+  $('#sheetWhoWrap').hidden = SYNC_ON;
   setSeg($('#sheetWho'), 'who', me());
   $('#sheetName').value = (prefs.profile && prefs.profile.name) || '';
   $('#installCard').hidden = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  $('#appVersion').textContent = 'Versão ' + APP_VERSION;
   renderSyncUi();
   $('#sheet').classList.add('open');
   document.body.classList.add('noscroll');
@@ -1619,6 +1777,7 @@ $('#sheetClose').addEventListener('click', closeSheet);
 $('#sheetScrim').addEventListener('click', closeSheet);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#sheet').classList.contains('open')) closeSheet(); });
 bindSeg($('#sheetWho'), 'who', v => {
+  if (SYNC_ON) return;
   prefs.profile = Object.assign({}, prefs.profile, {who: v}); savePrefs();
   renderAll();
   toast('Perfil: ' + WHO[v] + '.');
@@ -1631,7 +1790,7 @@ function renderProfileChip(){ $('#profileBtn').textContent = myName().charAt(0).
 
 $('#backupExport').addEventListener('click', async () => {
   const name = 'malta-2027-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-  const text = JSON.stringify({app: 'malta2027', exportedAt: new Date().toISOString(), by: myName(), state: S}, null, 2);
+  const text = JSON.stringify({app: 'malta2027', v: 3, exportedAt: new Date().toISOString(), who: me(), sh: SH, pv: PV}, null, 2);
   const file = new File([text], name, {type: 'application/json'});
   try {
     if (navigator.canShare && navigator.canShare({files: [file]})){ await navigator.share({files: [file], title: 'Backup Malta 2027'}); return; }
@@ -1648,29 +1807,37 @@ $('#backupFile').addEventListener('change', async e => {
   if (!f) return;
   try {
     const j = JSON.parse(await f.text());
-    if (!j || j.app !== 'malta2027' || !j.state || j.state.v !== 2) throw new Error('formato');
-    S = mergeState(S, j.state);
+    if (!j || j.app !== 'malta2027') throw new Error('formato');
+    let inc = null;
+    if (j.v === 3 && j.sh) inc = {sh: j.sh, pv: j.who === me() ? j.pv : null};
+    else if (j.state && j.state.v === 2) inc = fromV2(j.state);
+    if (!inc) throw new Error('formato');
+    SH = mergeShared(SH, inc.sh);
+    if (inc.pv) PV = mergePrivate(PV, inc.pv);
     commit(); renderAll();
     toast('Backup importado e combinado com os dados daqui.');
   } catch (err) { toast('Esse arquivo não é um backup do Malta 2027.'); }
 });
+function clearDevice(){
+  try { Object.keys(localStorage).filter(k => k.indexOf(NS) === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  return Promise.all(['ph', 'photos'].map(s => idbReq(s, 'readwrite', st => st.clear()).catch(() => {})));
+}
 let wipeArmed = 0;
 $('#wipeBtn').addEventListener('click', async () => {
   if (Date.now() - wipeArmed > 4000){
     wipeArmed = Date.now();
-    $('#wipeBtn').textContent = 'Toque de novo para apagar tudo';
+    $('#wipeBtn').textContent = 'Toque de novo para apagar';
     setTimeout(() => { $('#wipeBtn').textContent = 'Apagar dados deste aparelho'; }, 4000);
     return;
   }
   try { if (sb) await sb.auth.signOut(); } catch (e) {}
-  try { Object.keys(localStorage).filter(k => k.indexOf(NS) === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {}
-  try { const db = await idb(); await new Promise(r => { const tx = db.transaction('photos', 'readwrite'); tx.objectStore('photos').clear(); tx.oncomplete = tx.onerror = () => r(); }); } catch (e) {}
+  await clearDevice();
   location.reload();
 });
 
-/* ---------- Sync (Supabase, opcional) ---------- */
-const SYNC_ON = !!(CONFIG.supabaseUrl && CONFIG.supabaseKey);
-let sb = null, sbLoading = null, session = null, syncTimer = null, syncBusy = false, syncAgain = false, syncState = 'idle';
+/* ---------- Sync ---------- */
+let sb = null, sbLoading = null, session = null, syncTimer = null, syncBusy = false, syncAgain = false, syncState = 'idle', channel = null;
+const cloudReady = () => !!(SYNC_ON && sb && session && navigator.onLine !== false);
 function loadSupabase(){
   if (sbLoading) return sbLoading;
   sbLoading = new Promise((res, rej) => {
@@ -1685,10 +1852,19 @@ function loadSupabase(){
   });
   return sbLoading;
 }
-function scheduleSync(){
+function scheduleSync(ms){
   if (!SYNC_ON || !session) return;
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(syncNow, 2500);
+  syncTimer = setTimeout(syncNow, ms || 1500);
+}
+async function pullRow(table, col, val){
+  const r = await sb.from(table).select('payload').eq(col, val).maybeSingle();
+  if (r.error) throw r.error;
+  return r.data && r.data.payload && r.data.payload.v === 3 ? r.data.payload : null;
+}
+async function pushRow(table, row){
+  const r = await sb.from(table).upsert(Object.assign({updated_at: new Date().toISOString()}, row));
+  if (r.error) throw r.error;
 }
 async function syncNow(){
   if (!SYNC_ON || !session) return;
@@ -1696,17 +1872,33 @@ async function syncNow(){
   if (navigator.onLine === false){ syncState = 'offline'; renderSyncUi(); return; }
   syncBusy = true; syncState = 'busy'; renderSyncUi();
   try {
-    const got = await sb.from('malta_sync').select('payload').eq('trip_id', CONFIG.trip).maybeSingle();
-    if (got.error) throw got.error;
-    const remote = got.data && got.data.payload && got.data.payload.v === 2 ? got.data.payload : null;
-    const before = JSON.stringify(S);
-    const merged = remote ? mergeState(S, remote) : sanitize(S);
-    const mergedStr = JSON.stringify(merged);
-    if (mergedStr !== before){ S = merged; ls.set('v2', S); renderAll(); }
-    if (!remote || JSON.stringify(sanitize(remote)) !== mergedStr){
-      const put = await sb.from('malta_sync').upsert({trip_id: CONFIG.trip, payload: merged, updated_at: new Date().toISOString()});
-      if (put.error) throw put.error;
+    /* Compartilhado: junta o que esta aqui com o que esta no servidor e so grava se sobrou diferenca. */
+    const remoteSh = await pullRow('malta_sync', 'trip_id', CONFIG.trip);
+    const cleanRemoteSh = remoteSh ? sanitizeShared(remoteSh) : null;
+    const localSh = sanitizeShared(SH);
+    const shChangedHere = !!cleanRemoteSh && !sameShared(mergeShared(localSh, cleanRemoteSh), localSh);
+    /* Pessoal: a linha e so desta conta; o servidor nao entrega a da outra. */
+    const remotePv = await pullRow('malta_private', 'user_id', session.user.id);
+    const cleanRemotePv = remotePv ? sanitizePrivate(remotePv) : null;
+    const localPv = sanitizePrivate(PV);
+    const pvChangedHere = !!cleanRemotePv && JSON.stringify(mergePrivate(localPv, cleanRemotePv)) !== JSON.stringify(localPv);
+    /* Junta com o estado deste instante: se ela mexeu em algo enquanto a rede respondia, isso tambem entra. */
+    if (shChangedHere) SH = mergeShared(SH, cleanRemoteSh);
+    if (pvChangedHere) PV = mergePrivate(PV, cleanRemotePv);
+    if (shChangedHere || pvChangedHere){
+      saveLocal(); renderAll();
+      if (shChangedHere && prefs.lastSync && cleanRemoteSh.by && cleanRemoteSh.by !== me()) toast('Atualizado com as mudanças da ' + WHO[cleanRemoteSh.by] + '.');
     }
+    const outSh = sanitizeShared(SH);
+    if (!cleanRemoteSh || !sameShared(cleanRemoteSh, outSh)){
+      outSh.by = me();
+      await pushRow('malta_sync', {trip_id: CONFIG.trip, payload: outSh});
+    }
+    const outPv = sanitizePrivate(PV);
+    if (!cleanRemotePv || JSON.stringify(cleanRemotePv) !== JSON.stringify(outPv)){
+      await pushRow('malta_private', {user_id: session.user.id, payload: outPv});
+    }
+    await syncPhotos();
     prefs.lastSync = Date.now(); savePrefs();
     syncState = 'ok';
   } catch (e) {
@@ -1714,6 +1906,31 @@ async function syncNow(){
   }
   syncBusy = false; renderSyncUi();
   if (syncAgain){ syncAgain = false; scheduleSync(); }
+  else if (syncState === 'error') scheduleSync(20000);
+}
+async function syncPhotos(){
+  const alive = {};
+  SH.photos.forEach(p => { alive[p.id] = 1; });
+  for (const id of prefs.pendingUp.slice()){
+    if (alive[id]){
+      const blob = await blobGet(id);
+      if (blob){
+        const r = await sb.storage.from(CONFIG.bucket).upload(CONFIG.trip + '/' + id + '.jpg', blob, {contentType: 'image/jpeg', upsert: true});
+        if (r.error) continue;
+      }
+    }
+    prefs.pendingUp = prefs.pendingUp.filter(x => x !== id);
+    savePrefs();
+  }
+  Object.keys(SH.phDel).forEach(id => { blobDel(id); });
+}
+function listenRemote(){
+  if (channel || !sb) return;
+  try {
+    channel = sb.channel('malta-' + CONFIG.trip)
+      .on('postgres_changes', {event: '*', schema: 'public', table: 'malta_sync', filter: 'trip_id=eq.' + CONFIG.trip}, () => scheduleSync(400))
+      .subscribe();
+  } catch (e) { channel = null; }
 }
 function renderSyncUi(){
   const st = $('#syncStatus'), help = $('#syncHelp');
@@ -1727,16 +1944,27 @@ function renderSyncUi(){
   }
   $('#syncEmail').textContent = session ? session.user.email : '';
   const when = prefs.lastSync ? new Date(prefs.lastSync).toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) : '';
-  st.textContent = {busy: 'Sincronizando…', ok: 'Em dia', offline: 'Sem conexão', error: 'Falhou, tentaremos de novo', denied: 'Conta sem acesso', idle: 'Aguardando'}[syncState];
-  help.textContent = syncState === 'denied' ? 'Este e-mail não está na lista da viagem. Entre com o e-mail convidado.'
-    : when ? 'Última sincronização em ' + when + '.' : 'As mudanças sobem sozinhas quando há internet.';
+  const waiting = prefs.pendingUp.length;
+  st.textContent = {busy: 'Sincronizando…', ok: waiting ? 'Enviando fotos' : 'Em dia', offline: 'Sem conexão', error: 'Falhou, vamos tentar de novo', denied: 'Conta sem acesso', idle: 'Aguardando'}[syncState];
+  help.textContent = syncState === 'denied' ? 'Este e-mail não faz parte da viagem.'
+    : syncState === 'offline' || syncState === 'error' ? 'Suas mudanças estão salvas neste aparelho e sobem quando a conexão voltar.'
+    : when ? 'Última sincronização em ' + when + '. Roteiro, checklist, diário e gastos juntas são das duas; poupança e gastos só seus ficam só na sua conta.'
+    : 'As mudanças sobem sozinhas quando há internet.';
 }
 $('#syncNowBtn').addEventListener('click', syncNow);
 $('#logoutBtn').addEventListener('click', async () => {
-  try { await sb.auth.signOut(); } catch (e) {}
+  /* Antes de sair, garante que tudo subiu; depois tira os dados pessoais deste aparelho. */
+  $('#logoutBtn').disabled = true;
+  await syncNow();
+  const safe = syncState === 'ok' && !prefs.pendingUp.length;
+  $('#logoutBtn').disabled = false;
+  if (!safe && !confirm('Há mudanças que ainda não subiram. Sair mesmo assim? Elas ficam guardadas neste aparelho.')) return;
+  try { if (channel){ sb.removeChannel(channel); channel = null; } await sb.auth.signOut(); } catch (e) {}
+  if (safe){ PV = freshPrivate(); prefs.uid = ''; saveLocal(); savePrefs(); }
   session = null; closeSheet(); showAuth('email');
 });
-window.addEventListener('online', () => { scheduleSync(); refreshFx(); loadWeather(); });
+window.addEventListener('online', () => { scheduleSync(300); refreshFx(); loadWeather(); });
+window.addEventListener('offline', () => { syncState = 'offline'; renderSyncUi(); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   renderCountdown(); refreshFx(); loadWeather();
@@ -1744,7 +1972,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 /* ---------- Onboarding / login ---------- */
-let whoSel = 'nana', recovering = false;
+let whoSel = 'nana', recovering = false, authBusy = false;
 bindSeg($('#whoSeg'), 'who', v => { whoSel = v; });
 function authMsg(t){ $('#authMsg').textContent = t || ''; }
 function showAuth(mode){
@@ -1764,18 +1992,38 @@ function showApp(){
   document.body.classList.remove('locked');
   renderAll();
   goTab(prefs.tab, true);
+  migrateOldPhotos();
 }
-function afterLogin(){
+/* Depois do login: o servidor diz quem ela e (Nana ou Dani) pelo e-mail. Nao da para escolher. */
+async function afterLogin(){
   recovering = false;
-  if (prefs.profile && WHO[prefs.profile.who]){ showApp(); syncNow(); }
-  else showAuth('profile');
+  let who = null, denied = false;
+  try {
+    const r = await sb.from('malta_members').select('who').maybeSingle();
+    if (r.error) throw r.error;
+    if (r.data && WHO[r.data.who]) who = r.data.who; else denied = true;
+  } catch (e) {
+    if (prefs.uid === session.user.id && prefs.profile) who = prefs.profile.who;
+  }
+  if (denied){
+    try { await sb.auth.signOut(); } catch (e) {}
+    session = null; showAuth('email'); authMsg('Este e-mail não faz parte da viagem.');
+    return;
+  }
+  if (!who){ showAuth('email'); authMsg('Sem conexão com o servidor. Tente de novo.'); return; }
+  if (prefs.uid && prefs.uid !== session.user.id){ PV = freshPrivate(); saveLocal(); }
+  prefs.uid = session.user.id;
+  prefs.profile = {who: who, name: prefs.profile && prefs.profile.who === who ? prefs.profile.name || '' : ''};
+  savePrefs();
+  showApp();
+  listenRemote();
+  syncNow();
 }
 $('#authProfileForm').addEventListener('submit', e => {
   e.preventDefault();
   prefs.profile = {who: whoSel, name: $('#authName').value.trim().slice(0, 24)};
   savePrefs();
   showApp();
-  if (SYNC_ON && session) syncNow();
 });
 function creds(needPass){
   const email = $('#authEmail').value.trim().toLowerCase(), password = $('#authPass').value;
@@ -1784,10 +2032,10 @@ function creds(needPass){
   return {email: email, password: password};
 }
 async function authRun(btn, busyText, fn){
-  btn.disabled = true; authMsg(busyText);
+  btn.disabled = true; authBusy = true; authMsg(busyText);
   try { await loadSupabase(); await fn(); }
   catch (err) { authMsg(/rate limit/i.test((err && err.message) || '') ? 'Muitas tentativas. Espere alguns minutos e tente de novo.' : 'Sem conexão com o servidor. Tente de novo.'); }
-  btn.disabled = false;
+  btn.disabled = false; authBusy = false;
 }
 $('#authEmailForm').addEventListener('submit', e => {
   e.preventDefault();
@@ -1800,7 +2048,7 @@ $('#authEmailForm').addEventListener('submit', e => {
       return;
     }
     session = r.data.session; $('#authPass').value = '';
-    afterLogin();
+    await afterLogin();
   });
 });
 $('#btnSignup').addEventListener('click', () => {
@@ -1809,10 +2057,10 @@ $('#btnSignup').addEventListener('click', () => {
     const r = await sb.auth.signUp(c);
     if (r.error){
       if (/rate limit/i.test(r.error.message)) throw r.error;
-      authMsg('Não deu para criar a conta. Confira o e-mail e a senha.');
+      authMsg(/faz parte da viagem|database error/i.test(r.error.message) ? 'Este e-mail não faz parte da viagem.' : 'Não deu para criar a conta. Confira o e-mail e a senha.');
       return;
     }
-    if (r.data.session){ session = r.data.session; afterLogin(); return; }
+    if (r.data.session){ session = r.data.session; await afterLogin(); return; }
     const exists = r.data.user && Array.isArray(r.data.user.identities) && r.data.user.identities.length === 0;
     authMsg(exists ? 'Esse e-mail já tem conta. Toque em Entrar.' : 'Enviamos um link de confirmação para ' + c.email + '. Toque nele e volte aqui para entrar.');
   });
@@ -1833,7 +2081,7 @@ $('#authPassForm').addEventListener('submit', e => {
     const r = await sb.auth.updateUser({password: password});
     if (r.error){ authMsg('Não deu para salvar. Peça um link novo em Esqueci a senha.'); return; }
     $('#authNewPass').value = '';
-    afterLogin();
+    await afterLogin();
   });
 });
 $('#btnGoogle').addEventListener('click', async () => {
@@ -1855,14 +2103,14 @@ async function initAuth(){
     sb.auth.onAuthStateChange((evt, s) => {
       const had = !!session; session = s;
       if (evt === 'PASSWORD_RECOVERY'){ recovering = true; showAuth('newpass'); return; }
-      if (s && !had && !recovering && $('#auth').classList.contains('show') && $('#authProfileForm').hidden) afterLogin();
+      if (s && !had && !recovering && !authBusy && $('#auth').classList.contains('show') && !$('#authEmailForm').hidden) afterLogin();
     });
   } catch (e) {
-    /* Sem rede: quem ja entrou antes continua usando o que esta salvo no aparelho. */
-    if (prefs.profile && prefs.lastSync){ showApp(); syncState = 'offline'; return; }
+    /* Sem rede e sem a biblioteca em cache: quem ja entrou neste aparelho segue usando o que esta salvo. */
+    if (prefs.uid && prefs.profile){ showApp(); syncState = 'offline'; return; }
   }
   if (recovering) return;
-  if (session) afterLogin(); else showAuth('email');
+  if (session) await afterLogin(); else showAuth('email');
 }
 
 /* ---------- Init ---------- */
@@ -1873,7 +2121,7 @@ function renderAll(){
   renderItinerary();
   renderChecklist();
   renderDiary();
-  if (WHO[me()] && payerSel !== 'ambas'){ payerSel = me(); setSeg($('#payerSeg'), 'payer', payerSel); }
+  if (payerSel !== 'ambas' && document.activeElement !== $('#expDesc') && document.activeElement !== $('#expEur')){ payerSel = me(); setSeg($('#payerSeg'), 'payer', payerSel); }
 }
 loadState();
 initAuth();
