@@ -41,6 +41,13 @@ python3 -m http.server 8793
 - `char_audit.py` (Lei Zero-Char): 0 ERROR na pasta. Código 100% ASCII de propósito.
 - `android` não aplicável; as duas usam iPhone.
 
+
+## Publicação (11/11/2026)
+
+- **Link (Vercel, produção):** https://malta-2027-nine.vercel.app
+- **Link anterior (GitHub Pages):** https://rodriguezmartinsgabriel-hue/malta-2027/ (repo público)
+- **Acesso aos dados (segurança):** os **dados/sync da viagem** ficam restritos às duas contas quando o Supabase estiver configurado, via login (Google/link mágico) + RLS allowlist. E-mails autorizados no schema: `nataliacprestes@gmail.com` (Natália) e `danielalimags@outlook.com` (Dani). Sem Supabase configurado, o app funciona em modo local por aparelho (cada um vê só o seu). A casca do site é acessível a quem tiver o link; o que é protegido é o acesso aos dados compartilhados.
+
 ## Pesquisa open source (11/11/2026)
 
 Via TinyFish (GitHub/Reddit): TREK (`liketrek/TREK`, planejador self-hosted), AdventureLog, `makinacorpus/maplibre-offline-pmtiles` (mapa offline PWA), Open-Meteo (clima sem chave), Frankfurter/ECB (câmbio sem chave), OSM/Nominatim (lugares sem chave), Workbox (offline). Inspiração de features; código implementado sob medida para a Malta 2027.
