@@ -16,6 +16,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script defer src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <style>
 :root{
   --cream:#f3eddf;
@@ -395,6 +397,77 @@ body.locked #main,body.locked .dock{display:none}
 }
 .who.on{background:var(--wine-fill);color:var(--cream);border-color:transparent;box-shadow:0 6px 14px rgba(114,47,55,.28)}
 .avatar{background:var(--wine-fill);color:var(--cream);font-family:var(--serif);font-size:16px;font-weight:400}
+
+/* ---------- Clima ---------- */
+.wx-now{display:flex;align-items:center;gap:14px}
+.wx-now .temp{font-family:var(--serif);font-size:2.4rem;line-height:1;min-width:86px}
+.wx-now .meta small{display:block;font-size:.7rem;color:var(--muted)}
+.wx-now .meta b{font-size:.9rem;font-weight:500}
+.wx-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.wx-days .d{text-align:center;padding:6px 0}
+.wx-days .d b{display:block;font-size:.72rem;font-weight:500;margin-bottom:2px}
+.wx-days .d span{font-family:var(--mono);font-size:10px;color:var(--muted);display:block}
+.wx-days .d span:last-child{color:var(--ink)}
+
+/* ---------- Mapa ---------- */
+.map-box{position:relative;height:300px;border-radius:18px;overflow:hidden;margin-bottom:10px}
+#map{position:absolute;inset:0}
+.map-pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+  background:var(--wine-fill);border:2px solid #fff;box-shadow:0 3px 8px rgba(36,31,28,.35)}
+.map-pin span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  transform:rotate(45deg);color:var(--cream);font-size:11px;font-weight:600}
+.maplibregl-popup-content{background:#fffdf6;border-radius:14px;box-shadow:0 8px 20px rgba(36,31,28,.18);padding:12px 14px;font-family:var(--sans)}
+.maplibregl-popup-content b{display:block;font-size:.88rem}
+.maplibregl-popup-content small{color:var(--muted)}
+.maplibregl-popup-close-button{font-size:16px;color:var(--muted)}
+.map-search{display:flex;gap:8px;margin-bottom:8px}
+.map-search input{flex:1}
+.place-res{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.place-res button{
+  text-align:left;border:1px solid var(--hairline);background:rgba(255,255,255,.6);
+  border-radius:12px;padding:8px 10px;cursor:pointer;font-size:.82rem;color:var(--ink);
+}
+.place-res button small{display:block;color:var(--muted);font-size:.68rem;margin-top:1px}
+.map-actions{display:flex;gap:8px}
+.map-actions .btn-capsule{min-height:40px;font-size:12.5px;padding:8px 14px}
+
+/* ---------- Diário ---------- */
+.diary-head{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.diary-head select{flex:1;min-width:0}
+.diary-note{
+  width:100%;border:1px solid transparent;border-radius:12px;background:var(--soft);
+  padding:10px 12px;font-size:14px;font-family:var(--sans);color:var(--ink);
+  min-height:70px;resize:vertical;margin-bottom:8px;
+}
+.diary-note:focus{outline:none;border-color:var(--wine);background:rgba(255,255,255,.7)}
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.photo-grid .ph{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--soft)}
+.photo-grid .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-grid .ph .x{
+  position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;
+  border:0;background:rgba(36,31,28,.55);color:#fff;font-size:10px;cursor:pointer;
+}
+.photo-add{display:flex;align-items:center;justify-content:center;height:100%;min-height:64px;
+  border:1.5px dashed var(--hairline);border-radius:12px;color:var(--muted);cursor:pointer;font-size:.72rem;text-align:center;padding:6px}
+
+/* ---------- Print (PDF) ---------- */
+#printDoc{display:none}
+@media print{
+  body{background:#fff;padding-bottom:0}
+  body>*:not(#printDoc){display:none !important}
+  body::before{display:none}
+  #printDoc{display:block !important;font-family:Georgia,'Times New Roman',serif;color:#241f1c;padding:0 8px}
+  #printDoc h1{font-size:26px;margin-bottom:2px}
+  #printDoc .sub{font-size:12px;color:#6b6156;margin-bottom:14px}
+  #printDoc h2{font-size:16px;margin:16px 0 6px;border-bottom:1.5px solid #722f37;padding-bottom:3px}
+  #printDoc table{width:100%;border-collapse:collapse;font-size:11px}
+  #printDoc th{text-align:left;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#6b6156;border-bottom:1px solid #ccc;padding:3px 4px}
+  #printDoc td{border-bottom:.5px solid #e3ddd2;padding:4px;vertical-align:top}
+  #printDoc .resumo{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;margin-bottom:6px}
+  #printDoc .resumo b{font-size:14px}
+  #printDoc .day td:first-child{white-space:nowrap;width:74px}
+  #printDoc .note{color:#6b6156;font-style:italic}
+}
 </style>
 </head>
 <body>
@@ -448,6 +521,13 @@ body.locked #main,body.locked .dock{display:none}
         <button class="iconbtn avatar" id="profileBtn" aria-label="Conta">N</button>
       </div>
       <p class="count-sub" id="cdDates">Embarque 28 de agosto de 2027</p>
+    </section>
+
+    <section class="glass card" id="wxCard">
+      <div class="screen-label">Clima em Malta</div>
+      <div id="wxNow"><p class="note">Carregando previsao...</p></div>
+      <div class="wx-days" id="wxDays"></div>
+      <p class="note" id="wxSrc" style="margin-top:8px"></p>
     </section>
 
     <section class="glass card">
@@ -572,8 +652,12 @@ body.locked #main,body.locked .dock{display:none}
         <button type="button" data-payer="dani" aria-pressed="false">Dani</button>
         <button type="button" data-payer="ambas" aria-pressed="false">50/50</button>
       </div>
+      <label class="taxrow" style="margin-top:10px;cursor:pointer"><span>So meu (pessoal)</span><input type="checkbox" id="expScope" style="width:auto;margin:0;accent-color:var(--wine)"></label>
+      <p class="note" style="margin-top:2px">Desmarcado = dividido entre as duas (juntas). Marcado = gasto pessoal de quem pagou.</p>
       <button class="btn-capsule" id="btnAddExpense" style="margin-top:12px">Adicionar gasto</button>
     </section>
+
+    <button class="btn-capsule btn-soft" id="btnPdf" type="button" style="margin-bottom:12px">Exportar roteiro e orcamento (PDF)</button>
 
     <section class="glass card-flush" id="expenseWrap">
       <div class="screen-label" style="padding-left:0">Gastos</div>
@@ -601,6 +685,33 @@ body.locked #main,body.locked .dock{display:none}
     </section>
 
     <div id="itinerary"></div>
+
+    <section class="glass card" style="margin-top:14px">
+      <div class="screen-label">Mapa da viagem</div>
+      <div class="map-search">
+        <input class="field" id="mapQ" type="text" placeholder="Buscar lugar em Malta..." style="margin:0">
+        <button class="btn-capsule" id="mapGo" type="button" style="width:auto;min-height:44px;padding:10px 14px">Buscar</button>
+      </div>
+      <div class="place-res" id="placeRes"></div>
+      <div class="map-box"><div id="map"></div></div>
+      <div class="map-actions">
+        <button class="btn-capsule btn-soft" id="mapPins" type="button">Ver pins do roteiro</button>
+        <button class="btn-capsule btn-soft" id="mapNav" type="button">Abrir navegacao</button>
+      </div>
+      <p class="note" id="mapNote" style="margin-top:8px">Mapa OpenStreetMap (MapLibre). Para usar sem internet, baixe um mapa offline no Organic Maps ou CoMaps.</p>
+    </section>
+
+    <section class="glass card" style="margin-top:14px">
+      <div class="screen-label">Diario da viagem</div>
+      <div class="diary-head">
+        <select class="field" id="diaryDay" style="margin:0"></select>
+      </div>
+      <textarea class="diary-note" id="diaryNote" placeholder="Como foi o dia? Onde comeram, o que sentiram..." maxlength="1200"></textarea>
+      <div class="photo-grid" id="photoGrid"></div>
+      <input type="file" id="photoPick" accept="image/*" multiple style="display:none">
+      <button class="btn-capsule btn-soft" id="photoAdd" type="button" style="margin-top:8px">Adicionar fotos</button>
+      <p class="note" style="margin-top:6px">Fotos ficam salvas neste aparelho (comprimidas). Com sync ligado, a nota do dia vai junto.</p>
+    </section>
   </div>
 </div>
 
@@ -665,6 +776,7 @@ body.locked #main,body.locked .dock{display:none}
 </div>
 
 </main>
+<div id="printDoc" aria-hidden="true"></div>
 
 <!-- Dock -->
 <nav class="dock" role="tablist" aria-label="Secoes">
@@ -734,8 +846,15 @@ const store = {
     try { const v = localStorage.getItem('malta2027:' + k); return v === null ? fallback : JSON.parse(v); }
     catch { return fallback; }
   },
-  set(k, v){ try { localStorage.setItem('malta2027:' + k, JSON.stringify(v)); } catch {} }
+  set(k, v){ try { localStorage.setItem('malta2027:' + k, JSON.stringify(v)); } catch {} },
+  del(k){ try { localStorage.removeItem('malta2027:' + k); } catch {} }
 };
+function me(){ const p = store.get('profile', null); return (p && p.who) ? p.who : 'local'; }
+function myName(){ const p = store.get('profile', null); if(!p) return 'Voce'; return p.name || (p.who === 'nana' ? 'Nana' : p.who === 'dani' ? 'Dani' : 'Voce'); }
+function pget(k, fb){ const v = store.get(me() + ':' + k, null); if(v !== null) return v; const g = store.get(k, null); return g !== null ? g : fb; }
+function pset(k, v){ store.set(me() + ':' + k, v); }
+function shget(k, fb){ return store.get('sh:' + k, fb); }
+function shset(k, v){ store.set('sh:' + k, v); }
 const eur = n => 'EUR ' + (isFinite(n) ? n : 0).toLocaleString('pt-BR', {minimumFractionDigits: Math.abs((n % 1)) > 0.001 ? 2 : 0, maximumFractionDigits: 2});
 const brl = n => 'R$ ' + (isFinite(n) ? n : 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
 const numOf = id => parseNum($(id).value);
@@ -773,7 +892,7 @@ function fxManual(){ const v = store.get('fxManual', DEFAULT_FX); return v > 0 ?
 function fxLiveCache(){ const q = store.get('fxLive', null); return q && Date.now() - q.at < 36 * 3600 * 1000 ? q : null; }
 function liveOn(){ return store.get('liveFx', true); }
 function fx(){ const q = liveOn() ? fxLiveCache() : null; return q ? q.rate : fxManual(); }
-function meta(){ return store.get('meta', DEFAULT_META); }
+function meta(){ return pget('meta', DEFAULT_META); }
 function fxLabel(){
   const q = liveOn() ? fxLiveCache() : null;
   return 'R$ ' + fx().toFixed(2).replace('.', ',') + (q ? ' (ao vivo)' : ' (manual)');
@@ -884,11 +1003,17 @@ $$('.seg [data-payer]').forEach(b => b.addEventListener('click', () => {
   payerSel = b.dataset.payer;
   $$('.seg [data-payer]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
 }));
-function expenses(){ return store.get('expenses', []); }
-function totalSpent(){ return expenses().reduce((s, e) => s + e.eur, 0); }
+function expenses(){
+  const raw = shget('expenses', store.get('expenses', []));
+  return raw.map(e => Object.assign({scope: 'shared'}, e));
+}
+function saveExpenses(items){ shset('expenses', items); store.set('expenses', items); }
+function sharedExpenses(){ return expenses().filter(e => e.scope !== 'mine'); }
+function myExpenses(){ const w = me(); return expenses().filter(e => e.scope === 'mine' && e.payer === w); }
+function totalSpent(){ return sharedExpenses().reduce((s, e) => s + e.eur, 0); }
 function settlement(){
   let nana = 0, dani = 0;
-  expenses().forEach(e => {
+  sharedExpenses().forEach(e => {
     if (e.payer === 'nana') nana += e.eur;
     else if (e.payer === 'dani') dani += e.eur;
     else { nana += e.eur / 2; dani += e.eur / 2; }
@@ -919,8 +1044,9 @@ function renderBudgetCards(){
   list.innerHTML = items.slice().reverse().map((e, idxRev) => {
     const i = items.length - 1 - idxRev;
     const who = e.payer === 'nana' ? 'Nana pagou' : e.payer === 'dani' ? 'Dani pagou' : 'Dividido 50/50';
+    const scope = e.scope === 'mine' ? ' - so ' + (e.payer === 'nana' ? 'Nana' : e.payer === 'dani' ? 'Dani' : 'ela') : ' - juntas';
     return '<div class="expense">' +
-      '<div class="what"><b>' + escapeHtml(e.desc) + '</b><small>' + who + ' - ' + new Date(e.at).toLocaleDateString('pt-BR') + '</small></div>' +
+      '<div class="what"><b>' + escapeHtml(e.desc) + '</b><small>' + who + scope + ' - ' + new Date(e.at).toLocaleDateString('pt-BR') + '</small></div>' +
       '<span class="eur">' + eur(e.eur) + '</span>' +
       '<button type="button" class="x" data-del="' + i + '" aria-label="Remover gasto">&times;</button>' +
     '</div>';
@@ -931,8 +1057,9 @@ $('#btnAddExpense').addEventListener('click', () => {
   const value = numOf('#expEur');
   if (!desc || value <= 0){ $('#expDesc').focus(); return; }
   const items = expenses();
-  items.push({desc: desc, eur: value, payer: payerSel, at: Date.now()});
-  store.set('expenses', items);
+  const scope = ($('#expScope') && $('#expScope').checked) ? 'mine' : 'shared';
+  items.push({desc: desc, eur: value, payer: payerSel, scope: scope, at: Date.now()});
+  saveExpenses(items);
   $('#expDesc').value = ''; $('#expEur').value = '';
   refreshChips();
 });
@@ -941,7 +1068,7 @@ $('#expenseList').addEventListener('click', e => {
   const i = +btn.dataset.del;
   const items = expenses();
   items.splice(i, 1);
-  store.set('expenses', items);
+  saveExpenses(items);
   refreshChips();
 });
 $('#expEur').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); $('#btnAddExpense').click(); } });
@@ -950,8 +1077,8 @@ $('#expEur').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preven
 const ITINERARY_SEED = [
   'Chegada em Malta - check-in em Valletta', 'Valletta a pe: fortalezas, Upper Barrakka, museus', 'Mdina e Rabat - a cidade silenciosa', 'Comino e Blue Lagoon de barco', 'Dia livre em Valletta: compras e rooftop', 'Gozo: ferry Mgarr + Victoria e cidadela', 'Gozo: Ramla Bay e Dwejra Bay', 'Marsaxlokk - mercado de domingo e luzzo coloridos', 'Sliema e ferry para Valletta ao anoitecer', 'Hagar Qim e Mnajdra - templos pre-historicos', 'Dia de praia: St Peter\'s Pool', 'Valletta: museu de Bellas Artes e Co-Catetral', 'Senglea e Birgu (As tres cidades)', 'Dia livre: dormir mais tarde e cafe', 'Golden Bay / Gnejna', 'Compras + lembrancinhas', 'Valletta gastronomia: pastizzi e ftira', 'Pre-embarque: arrumar as malas', 'Ultimo dia: passeio final e jantar de despedida', 'Embarque de volta', 'Chegada ao Brasil'
 ];
-function itinerary(){ return store.get('itinerary', null); }
-function saveItinerary(rows){ store.set('itinerary', rows); }
+function itinerary(){ return shget('itinerary', store.get('itinerary', null)); }
+function saveItinerary(rows){ shset('itinerary', rows); store.set('itinerary', rows); }
 function renderItinerary(){
   const host = $('#itinerary');
   const start = new Date(startDate() + 'T12:00:00');
@@ -1014,13 +1141,13 @@ function seedChecklist(){
   return out;
 }
 function checklistState(){
-  const s = store.get('checklist', null) || seedChecklist();
+  const s = shget('checklist', store.get('checklist', null)) || seedChecklist();
   for (const g of Object.keys(s)){
     s[g] = s[g].map(item => typeof item === 'string' ? {text: item, done: false} : {text: String(item.text), done: !!item.done});
   }
   return s;
 }
-function saveChecklist(s){ store.set('checklist', s); }
+function saveChecklist(s){ shset('checklist', s); store.set('checklist', s); }
 function renderChecklist(){
   const state = checklistState();
   const tasks = state[groupSel] || [];
@@ -1080,6 +1207,12 @@ const syncCfg = () => ({
   trip: store.get('syncTrip', '') || 'nana-dani'
 });
 function syncConfigured(){ const c = syncCfg(); return !!(c.url && c.key); }
+/* ---------- Diario (stubs) ---------- */
+function diaryAll(){ return shget('diary', {}); }
+function saveDiaryAll(d){ shset('diary', d); }
+function diaryDay(i){ return diaryAll()[String(i)] || {note:'', photos:[], by:''}; }
+function saveDiaryDay(i, d){ const a = diaryAll(); a[String(i)] = d; saveDiaryAll(a); if(typeof renderDiary === 'function') renderDiary(); }
+
 function payloadAll(){
   const p = profile();
   return {
@@ -1091,20 +1224,22 @@ function payloadAll(){
     expenses: expenses(),
     itinerary: itinerary() || [],
     checklist: checklistState(),
+    diary: diaryAll(),
     savedAt: Date.now(),
     updatedBy: p ? (p.name || (p.who === 'nana' ? 'Nana' : 'Dani')) : 'local'
   };
 }
 function applyPayload(p){
   if(!p || typeof p !== 'object') return;
-  if(isFinite(p.monthly)) store.set('monthly', p.monthly);
-  if(isFinite(p.meta)) store.set('meta', p.meta);
+  if(isFinite(p.monthly)) pset('monthly', p.monthly);
+  if(isFinite(p.meta)) pset('meta', p.meta);
   if(isFinite(p.fxManual)) store.set('fxManual', p.fxManual);
   if(typeof p.liveFx === 'boolean') store.set('liveFx', p.liveFx);
   if(typeof p.start === 'string' && p.start) store.set('start', p.start);
-  if(Array.isArray(p.expenses)) store.set('expenses', p.expenses);
-  if(Array.isArray(p.itinerary) && p.itinerary.length) store.set('itinerary', p.itinerary);
-  if(p.checklist && typeof p.checklist === 'object') store.set('checklist', p.checklist);
+  if(Array.isArray(p.expenses)) saveExpenses(p.expenses);
+  if(Array.isArray(p.itinerary) && p.itinerary.length) saveItinerary(p.itinerary);
+  if(p.checklist && typeof p.checklist === 'object') saveChecklist(p.checklist);
+  if(p.diary && typeof p.diary === 'object') saveDiaryAll(p.diary);
 }
 function setSyncStatus(txt, ok){
   const el = $('#syncStatus');
@@ -1294,6 +1429,245 @@ async function logout(){
 $('#btnLogout').addEventListener('click', logout);
 $('#profileBtn').addEventListener('click', openSync);
 
+
+/* ---------- Clima (Open-Meteo, sem chave) ---------- */
+const WX_LAT = 35.9375, WX_LON = 14.3754; // Valletta
+const WX_WMO = {0:['Ceu limpo','sun'],1:['Quase limpo','sun'],2:['Parcialmente nublado','cloud'],3:['Nublado','cloud'],45:['Nevoeiro','fog'],48:['Nevoeiro','fog'],51:['Garoa','rain'],53:['Garoa','rain'],55:['Garoa forte','rain'],61:['Chuva fraca','rain'],63:['Chuva','rain'],65:['Chuva forte','rain'],71:['Neve','snow'],80:['Pancadas','rain'],81:['Pancadas','rain'],82:['Pancadas fortes','rain'],95:['Trovoada','storm']};
+function wxDesc(code){ const w = WX_WMO[code] || ['Tempo variavel','cloud']; return w[0]; }
+function wxIcon(code){
+  const t = (WX_WMO[code] || ['','cloud'])[1];
+  const s = 'width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+  if(t==='sun') return '<svg '+s+'><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4m11.4-11.4 1.4-1.4"/></svg>';
+  if(t==='rain') return '<svg '+s+'><path d="M16 13v8m-8-8v8m4-6v8"/><path d="M20 16.6A5 5 0 0 0 18 7h-1.3A8 8 0 1 0 4 15.3"/></svg>';
+  if(t==='fog') return '<svg '+s+'><path d="M4 14h16M4 18h16M6 10h12"/></svg>';
+  if(t==='storm') return '<svg '+s+'><path d="M13 2 4 14h7l-1 8 10-12h-7z"/></svg>';
+  return '<svg '+s+'><path d="M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>';
+}
+async function loadWeather(){
+  const nowEl = $('#wxNow'), daysEl = $('#wxDays'), srcEl = $('#wxSrc');
+  if(!nowEl) return;
+  const cache = store.get('wx', null);
+  if(cache && Date.now() - cache.at < 3*3600*1000){ renderWeather(cache.data); return; }
+  try{
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude='+WX_LAT+'&longitude='+WX_LON+'&current=temperature_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Europe%2FMalta&forecast_days=7';
+    const r = await fetch(url);
+    if(!r.ok) throw 0;
+    const data = await r.json();
+    store.set('wx', {at: Date.now(), data: data});
+    renderWeather(data);
+  }catch(e){
+    if(cache) renderWeather(cache.data); else nowEl.innerHTML = '<p class="note">Previsao indisponivel agora. Tente com internet.</p>';
+  }
+}
+function renderWeather(data){
+  const nowEl = $('#wxNow'), daysEl = $('#wxDays'), srcEl = $('#wxSrc');
+  if(!nowEl || !data || !data.current) return;
+  const c = data.current;
+  nowEl.innerHTML = '<div class="wx-now">' +
+    '<span style="color:var(--olive)">'+wxIcon(c.weather_code)+'</span>' +
+    '<div class="temp" style="font-family:var(--serif);font-size:2.4rem;line-height:1">'+Math.round(c.temperature_2m)+'°</div>' +
+    '<div class="meta"><b>'+wxDesc(c.weather_code)+'</b><small>Vento '+Math.round(c.wind_speed_10m)+' km/h · Valletta</small></div></div>';
+  if(data.daily && data.daily.time){
+    daysEl.innerHTML = data.daily.time.map((t,i) => {
+      const d = new Date(t+'T12:00:00');
+      const wk = plain(d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')).slice(0,3);
+      return '<div class="d"><b>'+wk+'</b><span style="color:var(--olive);display:flex;justify-content:center">'+wxIcon(data.daily.weather_code[i])+'</span><span>'+Math.round(data.daily.temperature_2m_max[i])+'°</span><span>'+Math.round(data.daily.temperature_2m_min[i])+'°</span></div>';
+    }).join('');
+  }
+  srcEl.textContent = 'Open-Meteo (sem chave) · atualiza a cada 3h';
+}
+
+/* ---------- FX backup: Frankfurter (ECB, sem chave) ---------- */
+const _origRefreshFX = refreshLiveFX;
+refreshLiveFX = async function(){
+  if(!liveOn()){ renderRate(); return; }
+  const cached = fxLiveCache();
+  if(cached){ renderRate(); return; }
+  try{
+    const r = await fetch('https://open.er-api.com/v6/latest/EUR');
+    if(r.ok){ const j = await r.json(); if(j && j.rates && j.rates.BRL){ store.set('fxLive', {rate: j.rates.BRL, at: Date.now(), src:'er'}); renderRate(); return; } }
+  }catch(e){}
+  try{
+    const r = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=BRL');
+    if(r.ok){ const j = await r.json(); if(j && j.rates && j.rates.BRL){ store.set('fxLive', {rate: j.rates.BRL, at: Date.now(), src:'ecb'}); renderRate(); return; } }
+  }catch(e){}
+  renderRate();
+};
+
+/* ---------- Mapa (MapLibre + OSM) ---------- */
+let mapObj = null, mapMarkers = [], mapSel = null;
+const MALTA_PLACES = [
+  {d:1, name:'Valletta', lat:35.8989, lon:14.5146},
+  {d:3, name:'Mdina e Rabat', lat:35.8860, lon:14.4025},
+  {d:4, name:'Comino / Blue Lagoon', lat:36.0136, lon:14.3232},
+  {d:6, name:'Gozo - Victoria', lat:36.0444, lon:14.2398},
+  {d:7, name:'Ramla Bay', lat:36.0614, lon:14.2844},
+  {d:8, name:'Marsaxlokk', lat:35.8412, lon:14.5443},
+  {d:9, name:'Sliema', lat:35.9125, lon:14.5019},
+  {d:10,name:'Hagar Qim', lat:35.8276, lon:14.4420},
+  {d:11,name:"St Peter's Pool", lat:35.8328, lon:14.5628},
+  {d:13,name:'Senglea e Birgu', lat:35.8878, lon:14.5221},
+  {d:15,name:'Golden Bay', lat:35.9341, lon:14.3447}
+];
+function initMap(){
+  if(mapObj || !window.maplibregl || !$('#map')) return;
+  try{
+    mapObj = new maplibregl.Map({
+      container: 'map',
+      style: 'https://tiles.openfreemap.org/styles/positron',
+      center: [14.3754, 35.9375],
+      zoom: 9.2,
+      attributionControl: true
+    });
+    mapObj.addControl(new maplibregl.NavigationControl({showCompass:false}), 'top-right');
+    mapObj.on('load', () => addItineraryPins());
+  }catch(e){ const n=$('#mapNote'); if(n) n.textContent='Mapa indisponivel offline. Baixe Organic Maps ou CoMaps.'; }
+}
+function clearPins(){ mapMarkers.forEach(m => m.remove()); mapMarkers = []; }
+function addItineraryPins(){
+  if(!mapObj) return; clearPins();
+  MALTA_PLACES.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'map-pin';
+    el.innerHTML = '<span>'+p.d+'</span>';
+    const popup = new maplibregl.Popup({offset:18}).setHTML('<b>Dia '+p.d+': '+escapeHtml(p.name)+'</b><small>Malta</small>');
+    const m = new maplibregl.Marker({element: el}).setLngLat([p.lon,p.lat]).setPopup(popup).addTo(mapObj);
+    mapMarkers.push(m);
+  });
+}
+function focusPlace(lat, lon, name){
+  if(!mapObj) return;
+  mapSel = {lat, lon, name};
+  if(mapObj._selMarker) mapObj._selMarker.remove();
+  mapObj._selMarker = new maplibregl.Marker({color:'#722f37'}).setLngLat([lon,lat]).addTo(mapObj);
+  mapObj.flyTo({center:[lon,lat], zoom:13});
+}
+async function searchPlace(){
+  const q = ($('#mapQ')||{}).value;
+  const res = $('#placeRes');
+  if(!q || q.trim().length < 2){ if(res) res.innerHTML=''; return; }
+  if(res) res.innerHTML = '<p class="note">Buscando...</p>';
+  try{
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&q='+encodeURIComponent(q + ', Malta');
+    const r = await fetch(url, {headers:{'Accept':'application/json'}});
+    const arr = r.ok ? await r.json() : [];
+    if(!arr.length){ res.innerHTML='<p class="note">Nada encontrado.</p>'; return; }
+    res.innerHTML = arr.map((p,i) => '<button type="button" data-pi="'+i+'"><b>'+escapeHtml(p.display_name.split(',')[0])+'</b><small>'+escapeHtml(p.display_name.split(',').slice(1,3).join(','))+'</small></button>').join('');
+    res.querySelectorAll('[data-pi]').forEach(b => b.addEventListener('click', () => {
+      const p = arr[+b.dataset.pi];
+      focusPlace(parseFloat(p.lat), parseFloat(p.lon), p.display_name.split(',')[0]);
+      res.innerHTML = '';
+    }));
+  }catch(e){ if(res) res.innerHTML='<p class="note">Busca indisponivel offline.</p>'; }
+}
+function openNav(){
+  const p = mapSel || {lat:MALTA_PLACES[0].lat, lon:MALTA_PLACES[0].lon, name:'Valletta'};
+  window.open('https://www.google.com/maps/dir/?api=1&destination='+p.lat+','+p.lon, '_blank');
+}
+
+/* ---------- Diario (nota + fotos comprimidas) ---------- */
+let diaryIdx = 0;
+function renderDiaryPicker(){
+  const sel = $('#diaryDay'); if(!sel) return;
+  const start = new Date(startDate() + 'T12:00:00');
+  let html = '';
+  for(let i=0;i<21;i++){
+    const d = new Date(start); d.setDate(d.getDate()+i);
+    const dm = ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2);
+    html += '<option value="'+i+'">Dia '+(i+1)+' - '+dm+'</option>';
+  }
+  sel.innerHTML = html;
+  sel.value = String(diaryIdx);
+}
+function renderDiary(){
+  renderDiaryPicker();
+  const d = diaryDay(diaryIdx);
+  const note = $('#diaryNote'); if(note) note.value = d.note || '';
+  const grid = $('#photoGrid'); if(!grid) return;
+  const photos = d.photos || [];
+  grid.innerHTML = photos.map((src,i) => '<div class="ph"><img src="'+src+'" alt="foto"><button type="button" class="x" data-deli="'+i+'" aria-label="Remover foto">&times;</button></div>').join('') +
+    '<label class="photo-add" for="photoPick">+ foto</label>';
+  grid.querySelectorAll('[data-deli]').forEach(b => b.addEventListener('click', () => {
+    const dd = diaryDay(diaryIdx); dd.photos.splice(+b.dataset.deli, 1); saveDiaryDay(diaryIdx, dd);
+  }));
+}
+function compressPhoto(file){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 800;
+      let w = img.width, h = img.height;
+      if(w > h){ if(w > max){ h = Math.round(h*max/w); w = max; } } else { if(h > max){ w = Math.round(w*max/h); h = max; } }
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.6));
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => reject(new Error('img'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function addPhotos(files){
+  const dd = diaryDay(diaryIdx);
+  for(const f of Array.from(files).slice(0, 4)){
+    try{
+      const data = await compressPhoto(f);
+      dd.photos = dd.photos || [];
+      dd.photos.push(data);
+      if(dd.photos.length > 8) dd.photos = dd.photos.slice(-8);
+    }catch(e){}
+  }
+  try{ saveDiaryDay(diaryIdx, dd); }catch(e){
+    try{ dd.photos = (dd.photos||[]).slice(-4); saveDiaryDay(diaryIdx, dd); }catch(e2){}
+    alert('Espaco cheio no aparelho. Remova algumas fotos do diario.');
+  }
+}
+
+/* ---------- PDF (impressao) ---------- */
+function buildPrintDoc(){
+  const host = $('#printDoc'); if(!host) return;
+  const p = profile();
+  const who = p ? (p.name || (p.who==='nana'?'Nana':'Dani')) : 'Nana e Dani';
+  const start = new Date(startDate() + 'T12:00:00');
+  const rows = itinerary() || ITINERARY_SEED.map(t => ({title:t,note:'',done:false}));
+  const exps = expenses();
+  const s = settlement();
+  let h = '<h1>Malta 2027 - Nana & Dani</h1><div class="sub">21 dias · '+start.toLocaleDateString('pt-BR')+' · gerado por '+escapeHtml(who)+'</div>';
+  h += '<h2>Roteiro</h2><table><thead><tr><th>Data</th><th>Dia</th><th>Plano</th><th>Notas</th></tr></thead><tbody>';
+  rows.forEach((r,i) => {
+    const d = new Date(start); d.setDate(d.getDate()+i);
+    const dm = ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2);
+    h += '<tr class="day"><td>'+dm+'</td><td>'+ (i+1) + (r.done?' ✓':'') +'</td><td>'+escapeHtml(r.title||'')+'</td><td class="note">'+escapeHtml(r.note||'')+'</td></tr>';
+  });
+  h += '</tbody></table>';
+  h += '<h2>Orcamento</h2><div class="resumo"><div>Total dividido <b>'+eur(totalSpent())+'</b></div><div>Cada uma <b>'+eur(totalSpent()/2)+'</b></div><div>Acerto <b>'+ (Math.abs(s.diff)<0.5?'Quitado':(s.diff>0?'Dani deve '+eur(Math.abs(s.diff)/2):'Nana deve '+eur(Math.abs(s.diff)/2))) +'</b></div></div>';
+  if(exps.length){
+    h += '<table><thead><tr><th>Data</th><th>Descricao</th><th>Quem pagou</th><th>Tipo</th><th>EUR</th></tr></thead><tbody>';
+    exps.forEach(e => {
+      h += '<tr><td>'+new Date(e.at).toLocaleDateString('pt-BR')+'</td><td>'+escapeHtml(e.desc)+'</td><td>'+ (e.payer==='nana'?'Nana':e.payer==='dani'?'Dani':'50/50') +'</td><td>'+ (e.scope==='mine'?'pessoal':'juntas') +'</td><td>'+eur(e.eur)+'</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  host.innerHTML = h;
+}
+function exportPdf(){ buildPrintDoc(); window.print(); }
+
+
+
+// Feature listeners
+const _btnPdf = $('#btnPdf'); if(_btnPdf) _btnPdf.addEventListener('click', exportPdf);
+const _mapGo = $('#mapGo'); if(_mapGo) _mapGo.addEventListener('click', searchPlace);
+const _mapQ = $('#mapQ'); if(_mapQ) _mapQ.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); searchPlace(); } });
+const _mapPins = $('#mapPins'); if(_mapPins) _mapPins.addEventListener('click', () => { if(mapObj){ addItineraryPins(); mapObj.flyTo({center:[14.3754,35.9375], zoom:9.2}); } });
+const _mapNav = $('#mapNav'); if(_mapNav) _mapNav.addEventListener('click', openNav);
+const _diaryDay = $('#diaryDay'); if(_diaryDay) _diaryDay.addEventListener('change', e => { diaryIdx = +e.target.value||0; renderDiary(); });
+const _diaryNote = $('#diaryNote'); if(_diaryNote) _diaryNote.addEventListener('input', e => { const d = diaryDay(diaryIdx); d.note = e.target.value.slice(0,1200); d.by = myName(); saveDiaryDay(diaryIdx, d); });
+const _photoAdd = $('#photoAdd'); if(_photoAdd) _photoAdd.addEventListener('click', () => $('#photoPick').click());
+const _photoPick = $('#photoPick'); if(_photoPick) _photoPick.addEventListener('change', e => { addPhotos(e.target.files); e.target.value=''; });
+
+// Default payer to current profile
+(function(){ const w = me(); if(w==='nana'||w==='dani'){ payerSel = w; $$('.seg [data-payer]').forEach(x => { const on = x.dataset.payer===w; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on?'true':'false'); }); } })();
+
 /* ---------- Init ---------- */
 function renderAll(){
   refreshChips();
@@ -1303,9 +1677,10 @@ function renderAll(){
   renderBudgetCards();
   renderItinerary();
   renderChecklist();
+  if(typeof renderDiary === 'function') renderDiary();
 }
 (function init(){
-  $('#inpMonthly').value = fmtInput(store.get('monthly', 800));
+  $('#inpMonthly').value = fmtInput(pget('monthly', 800));
   $('#inpFx').value = fxManual().toFixed(2).replace('.', ',');
   $('#inpMeta').value = fmtInput(meta());
   $('#inpBRL').value = fmtInput(10000);
@@ -1314,6 +1689,8 @@ function renderAll(){
   renderRate();
   const savedTab = store.get('tab', 'inicio');
   if (savedTab && $('#tab-' + savedTab)) goTab(savedTab);
+  loadWeather();
+  renderDiary();
   refreshLiveFX();
   initAuth();
   if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){

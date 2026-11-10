@@ -2,7 +2,7 @@
 
 O guia interativo da viagem de Nana e Dani a Malta — 21 dias entre o fim de agosto e o início de setembro de 2027.
 
-**Estado atual (10/11/2026):** a **PWA é o app principal** — `index.html` com a UI Liquid Glass (mesma do app nativo: cartões de vidro creme/vinho/oliva, dock flutuante de 6 itens, serifada Instrument nos números). HTML/CSS/JS vanilla, zero dependências além do Google Fonts. Roda em qualquer celular; offline via `sw.js` quando servida por HTTP(S). Instalar: Safari (iPhone) → Compartilhar → Adicionar à Tela de Início.
+**Estado atual (11/11/2026):** a **PWA é o app principal** — `index.html` com UI Liquid Glass (cartões de vidro creme/vinho/oliva, dock flutuante de 6 itens, serifada Instrument nos números). HTML/CSS/JS vanilla. Roda em qualquer celular; offline robusto via **Workbox** (`sw.js`) quando servida por HTTP(S). Instalar: Safari (iPhone) → Compartilhar → Adicionar à Tela de Início.
 
 **App nativo iOS (SwiftUI):** pronto no repo (`Apps/Malta/` + `Packages/MaltaKit/`), **pausado** até você ter a conta Apple Developer (US$ 99/ano) — sem ela, o nativo só roda por Xcode direto com certificado de 7 dias. Quando tiver a conta, o caminho é TestFlight (ver seção abaixo).
 
@@ -14,7 +14,7 @@ O guia interativo da viagem de Nana e Dani a Malta — 21 dias entre o fim de ag
 |---|---|
 | `index.html` | O app inteiro (6 seções: Início, Dinheiro, Orçamento, Roteiro, Checklist, Links) |
 | `manifest.webmanifest` | PWA manifest (nome, ícones, standalone, cores) |
-| `sw.js` | Service worker — cache do app shell (só ativa em HTTP/HTTPS) |
+| `sw.js` | Service worker **Workbox** — app shell, mapa/tiles offline, dados (clima/FX) network-first |
 | `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | Ícones (estrela 8 pontas vinho sobre creme) |
 | `HANDOFF-MAC.md` | O handoff para o agente do Mac — contexto, estado, QA, plano iOS e comandos |
 | `research/` | Toda a pesquisa TinyFish que embasa o app (IOF, contas globais, tributos, confiança, roteiro) |
@@ -24,7 +24,7 @@ O guia interativo da viagem de Nana e Dani a Malta — 21 dias entre o fim de ag
 - Destino: Malta. 21 dias. Embarque 28/08/2027, retorno 17/09/2027 (editável no app).
 - Orçamento total editável, default R$ 10.000 (~EUR 1.618 a 6,18).
 - Dinheiro: IOF 3,5% (compra de moeda e cartão), 1,1% via investimento; nenhuma conta global tem FGC. Recomendação: Wise Rende+ (EUR rende ~1,7% a.a.) como principal; Nomad (FDIC) ou Inter Global (RA1000) como segunda conta. Detalhes em `research/`.
-- As duas usam iPhone. Dados ficam no `localStorage` de cada aparelho (não sincronizam).
+- As duas usam iPhone. **Cada uma banca a própria viagem** (economia/meta pessoais por perfil) e viajam juntas: o que for dividido fica marcado como "juntas" (despesas com acerto 50/50), e cada uma pode lançar gastos "só meus". Roteiro, checklist e diário são compartilhados. Dados ficam no `localStorage` de cada aparelho; com Supabase configurado, sincronizam entre os dois iPhones.
 
 ## Como rodar local
 
@@ -41,6 +41,10 @@ python3 -m http.server 8793
 - `char_audit.py` (Lei Zero-Char): 0 ERROR na pasta. Código 100% ASCII de propósito.
 - `android` não aplicável; as duas usam iPhone.
 
+## Pesquisa open source (11/11/2026)
+
+Via TinyFish (GitHub/Reddit): TREK (`liketrek/TREK`, planejador self-hosted), AdventureLog, `makinacorpus/maplibre-offline-pmtiles` (mapa offline PWA), Open-Meteo (clima sem chave), Frankfurter/ECB (câmbio sem chave), OSM/Nominatim (lugares sem chave), Workbox (offline). Inspiração de features; código implementado sob medida para a Malta 2027.
+
 ## Avisos
 
 Não é conselho financeiro. IOF vive em liminar do STF (16/07/2025) sem referendo do Plenário — revisar alíquota 60–90 dias antes do embarque. Pesquisa de preços coletada via TinyFish em 09/11/2026.
@@ -51,14 +55,17 @@ Não é conselho financeiro. IOF vive em liminar do STF (16/07/2025) sem referen
 
 A PWA ganhou a mesma UI do app nativo: cartões de vidro flutuando num fundo creme com halos vinho/oliva, dock cápsula de 6 itens, números em Instrument Serif e micro-interações (toggle de FX ao vivo, sheet de sync, anel de progresso).
 
-## O que mudou na PWA
+## O que tem na PWA (11/11/2026)
 
-- **Backdrop:** creme `#F3EDDF` com halos vinho (topo) e oliva (baixo) em CSS puro.
-- **Cartões:** vidro branco-fosco (`backdrop-filter` + brilho de topo + stroke + sombra), raio 26.
-- **Dock:** cápsula flutuante fixa embaixo, pill vinho no item ativo (mesmo desenho do nativo).
-- **Abas:** Inicio (contagem com glow, stats, poupança, marcos 3+2), Dinheiro (cotação manual + **ao vivo** com toggle, conversor, contas, taxas), Orcamento (acerto em bloco sólido), Roteiro (semanas em cartões, toque na data marca o dia), Checklist (anel de progresso + chips), Links (112 em bloco sólido).
-- **Sync Supabase:** sheet no ícone do topo do Inicio (URL + anon key + trip id `nana-dani`), tabela-blob `malta_sync` no `research/supabase/schema.sql`. Sem configuração, 100% local (localStorage).
-- **FX ao vivo:** `open.er-api.com`, cache de 36h, fallback para a cotação manual.
+- **Login/onboarding:** ao abrir o link, cada uma escolhe "Quem é você? Nana / Dani" (+ nome). Com Supabase configurado: **Entrar com Google** (OAuth) ou **link mágico por e-mail**; sem Supabase: entra em modo local e nada bloqueia.
+- **Pessoal x juntas:** economia/meta (poupança/cofrinho) são **pessoais por perfil**. Gastos podem ser **"juntas"** (divididos, alimentam o acerto 50/50) ou **"só meu"** (pessoal de quem pagou, fora do acerto). Roteiro, checklist e diário são **compartilhados**.
+- **Clima em Malta** (Inicio): previsão atual + 7 dias via **Open-Meteo** (sem chave, open source), cache 3h.
+- **Mapa da viagem** (Roteiro): **MapLibre GL** com tiles **OpenStreetMap/OpenFreeMap** e pins dos dias do roteiro; busca de lugares em Malta via **Nominatim/OSM** (sem chave); botão "Abrir navegação". Tiles cacheados pelo Workbox para uso offline após o primeiro carregamento.
+- **Diário da viagem** (Roteiro): nota por dia + fotos (comprimidas no aparelho; com sync ligado a nota do dia vai junto).
+- **Exportar PDF:** botão em Orçamento gera a versão para impressão/PDF (roteiro dia a dia + orçamento + acerto).
+- **FX ao vivo + backup:** `open.er-api.com` com cache 36h e fallback automático para **Frankfurter/ECB** (sem chave, BRL). Cotação manual continua disponível.
+- **Sync Supabase:** avatar no topo do Inicio abre o sheet (URL + anon key + trip id `nana-dani`), tabela-blob `malta_sync` em `research/supabase/schema.sql`. Sem configuração, 100% local.
+- **Offline (Workbox):** app shell, fontes, tiles do mapa e dados (clima/FX) com estratégias de cache; funciona sem internet depois do primeiro acesso.
 
 ## Rodar localmente
 

@@ -1,51 +1,73 @@
-const CACHE = 'malta-2027-v2';
-const ASSETS = [
-  './index.html',
-  './manifest.webmanifest',
-  './icon-192.png',
-  './icon-512.png',
-  './apple-touch-icon.png'
-];
+/* Malta 2027 - Service Worker (Workbox)
+   Estrategias:
+   - App shell (html/manifest/icones): StaleWhileRevalidate
+   - MapLibre + OpenFreeMap tiles: CacheFirst (offline map tiles after first view)
+   - Open-Meteo / Frankfurter / Nominatim: NetworkFirst com fallback cache
+   - Google Fonts: StaleWhileRevalidate
+*/
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.1.0/workbox-sw.js');
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+if (workbox) {
+  workbox.core.setCacheNameDetails({ prefix: 'malta2027', suffix: 'v3' });
+  workbox.core.clientsClaim();
+  self.skipWaiting();
+
+  // App shell
+  workbox.precaching.precacheAndRoute([
+    { url: './', revision: 'v3' },
+    { url: './index.html', revision: 'v3' },
+    { url: './manifest.webmanifest', revision: 'v3' },
+    { url: './icon-192.png', revision: 'v3' },
+    { url: './icon-512.png', revision: 'v3' },
+    { url: './apple-touch-icon.png', revision: 'v3' }
+  ], { ignoreURLParametersMatching: [/.*/] });
+
+  // Navigation: network first, fall back to cached shell
+  workbox.routing.registerRoute(
+    ({ request }) => request.mode === 'navigate',
+    new workbox.strategies.NetworkFirst({
+      cacheName: 'malta2027-pages',
+      networkTimeoutSeconds: 4
+    })
   );
-});
 
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+  // MapLibre + tiles (OpenFreeMap) - cache first so the map works offline after first load
+  workbox.routing.registerRoute(
+    ({ url }) => url.hostname.includes('maplibre') || url.hostname.includes('openfreemap') || url.hostname.includes('unpkg.com'),
+    new workbox.strategies.CacheFirst({
+      cacheName: 'malta2027-map',
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({ maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 30 })
+      ]
+    })
   );
-});
 
-self.addEventListener('fetch', event => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
-
-  const isNavigation = req.mode === 'navigate';
-  if (isNavigation) {
-    event.respondWith(
-      fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put('./index.html', copy));
-        return res;
-      }).catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(req).then(cached => cached || fetch(req).then(res => {
-      if (res && res.ok) {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
-      }
-      return res;
-    }))
+  // Weather + FX + places - network first (fresh data), fall back to cache
+  workbox.routing.registerRoute(
+    ({ url }) => url.hostname.includes('open-meteo') || url.hostname.includes('frankfurter') || url.hostname.includes('er-api') || url.hostname.includes('nominatim'),
+    new workbox.strategies.NetworkFirst({
+      cacheName: 'malta2027-data',
+      networkTimeoutSeconds: 5,
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({ maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 })
+      ]
+    })
   );
-});
+
+  // Fonts
+  workbox.routing.registerRoute(
+    ({ url }) => url.hostname.includes('fonts.g') || url.hostname.includes('gstatic'),
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: 'malta2027-fonts',
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({ maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 })
+      ]
+    })
+  );
+} else {
+  // Fallback simples se o CDN do Workbox falhar
+  const CACHE = 'malta2027-v3-fallback';
+  self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./','./index.html','./manifest.webmanifest']))); self.skipWaiting(); });
+  self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+  self.addEventListener('fetch', e => { e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))); });
+}
