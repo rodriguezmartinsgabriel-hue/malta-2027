@@ -18,3 +18,4 @@ Config/Local.xcconfig
 
 # sw.js cache dirs
 node_modules/
+.vercel

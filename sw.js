@@ -1,73 +1,72 @@
-/* Malta 2027 - Service Worker (Workbox)
-   Estrategias:
-   - App shell (html/manifest/icones): StaleWhileRevalidate
-   - MapLibre + OpenFreeMap tiles: CacheFirst (offline map tiles after first view)
-   - Open-Meteo / Frankfurter / Nominatim: NetworkFirst com fallback cache
-   - Google Fonts: StaleWhileRevalidate
-*/
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.1.0/workbox-sw.js');
+/* Malta 2027 - service worker (sem dependencias externas).
+   - Navegacao e arquivos do app: rede primeiro, cache como reserva (offline).
+   - Fontes, MapLibre e tiles do mapa: cache primeiro.
+   - APIs (clima, cotacao, busca) e Supabase: direto na rede, o app guarda o que precisa. */
+const VERSION = 'v4';
+const SHELL = 'malta2027-shell-' + VERSION;
+const ASSETS = 'malta2027-assets-' + VERSION;
+const SHELL_FILES = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const ASSET_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'unpkg.com', 'cdn.jsdelivr.net', 'tiles.openfreemap.org'];
+const ASSET_LIMIT = 500;
 
-if (workbox) {
-  workbox.core.setCacheNameDetails({ prefix: 'malta2027', suffix: 'v3' });
-  workbox.core.clientsClaim();
-  self.skipWaiting();
-
-  // App shell
-  workbox.precaching.precacheAndRoute([
-    { url: './', revision: 'v3' },
-    { url: './index.html', revision: 'v3' },
-    { url: './manifest.webmanifest', revision: 'v3' },
-    { url: './icon-192.png', revision: 'v3' },
-    { url: './icon-512.png', revision: 'v3' },
-    { url: './apple-touch-icon.png', revision: 'v3' }
-  ], { ignoreURLParametersMatching: [/.*/] });
-
-  // Navigation: network first, fall back to cached shell
-  workbox.routing.registerRoute(
-    ({ request }) => request.mode === 'navigate',
-    new workbox.strategies.NetworkFirst({
-      cacheName: 'malta2027-pages',
-      networkTimeoutSeconds: 4
-    })
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(SHELL)
+      .then(cache => cache.addAll(SHELL_FILES.map(u => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
   );
+});
 
-  // MapLibre + tiles (OpenFreeMap) - cache first so the map works offline after first load
-  workbox.routing.registerRoute(
-    ({ url }) => url.hostname.includes('maplibre') || url.hostname.includes('openfreemap') || url.hostname.includes('unpkg.com'),
-    new workbox.strategies.CacheFirst({
-      cacheName: 'malta2027-map',
-      plugins: [
-        new workbox.expiration.ExpirationPlugin({ maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 30 })
-      ]
-    })
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== SHELL && k !== ASSETS).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
+});
 
-  // Weather + FX + places - network first (fresh data), fall back to cache
-  workbox.routing.registerRoute(
-    ({ url }) => url.hostname.includes('open-meteo') || url.hostname.includes('frankfurter') || url.hostname.includes('er-api') || url.hostname.includes('nominatim'),
-    new workbox.strategies.NetworkFirst({
-      cacheName: 'malta2027-data',
-      networkTimeoutSeconds: 5,
-      plugins: [
-        new workbox.expiration.ExpirationPlugin({ maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 })
-      ]
-    })
-  );
-
-  // Fonts
-  workbox.routing.registerRoute(
-    ({ url }) => url.hostname.includes('fonts.g') || url.hostname.includes('gstatic'),
-    new workbox.strategies.StaleWhileRevalidate({
-      cacheName: 'malta2027-fonts',
-      plugins: [
-        new workbox.expiration.ExpirationPlugin({ maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 })
-      ]
-    })
-  );
-} else {
-  // Fallback simples se o CDN do Workbox falhar
-  const CACHE = 'malta2027-v3-fallback';
-  self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./','./index.html','./manifest.webmanifest']))); self.skipWaiting(); });
-  self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
-  self.addEventListener('fetch', e => { e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))); });
+async function networkFirst(request, fallbackUrl) {
+  const cache = await caches.open(SHELL);
+  try {
+    const fresh = await fetch(request);
+    if (fresh && fresh.ok) cache.put(fallbackUrl || request, fresh.clone());
+    return fresh;
+  } catch (err) {
+    const hit = await cache.match(fallbackUrl || request, { ignoreSearch: true });
+    if (hit) return hit;
+    throw err;
+  }
 }
+
+async function trim(cache) {
+  const keys = await cache.keys();
+  for (let i = 0; i < keys.length - ASSET_LIMIT; i++) await cache.delete(keys[i]);
+}
+
+async function cacheFirst(request) {
+  const cache = await caches.open(ASSETS);
+  const hit = await cache.match(request);
+  if (hit) return hit;
+  const fresh = await fetch(request);
+  if (fresh && (fresh.ok || fresh.type === 'opaque')) {
+    cache.put(request, fresh.clone()).then(() => trim(cache)).catch(() => {});
+  }
+  return fresh;
+}
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (request.mode === 'navigate' && url.origin === self.location.origin) {
+    event.respondWith(networkFirst(request, './'));
+    return;
+  }
+  if (url.origin === self.location.origin) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+  if (ASSET_HOSTS.indexOf(url.hostname) > -1) {
+    event.respondWith(cacheFirst(request));
+  }
+});

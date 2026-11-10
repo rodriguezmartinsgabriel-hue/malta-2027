@@ -1,5 +1,12 @@
 # Malta 2027
 
+> **PWA v2 (2026-11-09, branch `fix/pwa-aaa`)** - o `index.html` foi reescrito. O que vale agora:
+> - Estado unico em `localStorage` (`malta2027:v2`) + preferencias do aparelho (`malta2027:prefs`); dados da v1 migram sozinhos na primeira abertura. Fotos do diario ficam em IndexedDB (so no aparelho).
+> - Sem Supabase configurado o app e 100% local e nao mostra login. Conta > Backup exporta/importa um `.json` (importar combina, nao sobrescreve).
+> - Sync: preencher `CONFIG` no topo do `<script>` do `index.html` (URL + anon key). Login por codigo de 6 digitos no e-mail (funciona dentro do PWA instalado no iPhone); o template de e-mail do Supabase precisa conter `{{ .Token }}`. O sync junta os dois lados (`mergeState`) em vez de sobrescrever, e roda sozinho.
+> - `sw.js` proprio (sem Workbox): rede primeiro para o app, cache como reserva offline. Trocar `VERSION` ao mudar a lista de arquivos.
+> - As secoes abaixo que citam "colar URL + anon key no sheet" e "link magico" descrevem a v1 e estao desatualizadas.
+
 O guia interativo da viagem de Nana e Dani a Malta — 21 dias entre o fim de agosto e o início de setembro de 2027.
 
 **Estado atual (11/11/2026):** a **PWA é o app principal** — `index.html` com UI Liquid Glass (cartões de vidro creme/vinho/oliva, dock flutuante de 6 itens, serifada Instrument nos números). HTML/CSS/JS vanilla. Roda em qualquer celular; offline robusto via **Workbox** (`sw.js`) quando servida por HTTP(S). Instalar: Safari (iPhone) → Compartilhar → Adicionar à Tela de Início.
