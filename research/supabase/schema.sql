@@ -38,6 +38,13 @@ create table if not exists settings (
   updated_at timestamptz not null default now()
 );
 
+-- PWA (index.html): sync em blob por trip (gastos, roteiro, checklist, settings)
+create table if not exists malta_sync (
+  trip_id text primary key,
+  payload jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists expenses_trip on expenses (trip_id);
 create index if not exists itinerary_trip on itinerary (trip_id, idx);
 create index if not exists checklists_trip on checklists (trip_id, group_idx);

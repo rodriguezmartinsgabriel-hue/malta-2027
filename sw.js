@@ -1,4 +1,4 @@
-const CACHE = 'malta-2027-v1';
+const CACHE = 'malta-2027-v2';
 const ASSETS = [
   './index.html',
   './manifest.webmanifest',

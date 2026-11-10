@@ -2,7 +2,9 @@
 
 O guia interativo da viagem de Nana e Dani a Malta — 21 dias entre o fim de agosto e o início de setembro de 2027.
 
-**Estado atual (09/11/2026):** PWA completa em `index.html` (HTML/CSS/JS vanilla, zero dependências além do Google Fonts, 43 KB). Roda em qualquer celular; offline via `sw.js` quando servida por HTTP(S). Instalar: Safari (iPhone) → Compartilhar → Adicionar à Tela de Início.
+**Estado atual (10/11/2026):** a **PWA é o app principal** — `index.html` com a UI Liquid Glass (mesma do app nativo: cartões de vidro creme/vinho/oliva, dock flutuante de 6 itens, serifada Instrument nos números). HTML/CSS/JS vanilla, zero dependências além do Google Fonts. Roda em qualquer celular; offline via `sw.js` quando servida por HTTP(S). Instalar: Safari (iPhone) → Compartilhar → Adicionar à Tela de Início.
+
+**App nativo iOS (SwiftUI):** pronto no repo (`Apps/Malta/` + `Packages/MaltaKit/`), **pausado** até você ter a conta Apple Developer (US$ 99/ano) — sem ela, o nativo só roda por Xcode direto com certificado de 7 dias. Quando tiver a conta, o caminho é TestFlight (ver seção abaixo).
 
 **Destino no Mac:** virar app iOS para as duas via Safari/Capacitor → Xcode → TestFlight, aproveitando a infra que já existe nos repos `analogik-ios` e `migalha-ios` (ver `HANDOFF-MAC.md` — **leia isso primeiro**).
 
@@ -45,9 +47,31 @@ Não é conselho financeiro. IOF vive em liminar do STF (16/07/2025) sem referen
 
 ---
 
-# App nativo iOS (SwiftUI) — 09/11/2026
+# PWA — Liquid Glass (app principal) — 10/11/2026
 
-O app foi reescrito como **nativo SwiftUI** (decisão: nada de Capacitor/PWA standalone).
+A PWA ganhou a mesma UI do app nativo: cartões de vidro flutuando num fundo creme com halos vinho/oliva, dock cápsula de 6 itens, números em Instrument Serif e micro-interações (toggle de FX ao vivo, sheet de sync, anel de progresso).
+
+## O que mudou na PWA
+
+- **Backdrop:** creme `#F3EDDF` com halos vinho (topo) e oliva (baixo) em CSS puro.
+- **Cartões:** vidro branco-fosco (`backdrop-filter` + brilho de topo + stroke + sombra), raio 26.
+- **Dock:** cápsula flutuante fixa embaixo, pill vinho no item ativo (mesmo desenho do nativo).
+- **Abas:** Inicio (contagem com glow, stats, poupança, marcos 3+2), Dinheiro (cotação manual + **ao vivo** com toggle, conversor, contas, taxas), Orcamento (acerto em bloco sólido), Roteiro (semanas em cartões, toque na data marca o dia), Checklist (anel de progresso + chips), Links (112 em bloco sólido).
+- **Sync Supabase:** sheet no ícone do topo do Inicio (URL + anon key + trip id `nana-dani`), tabela-blob `malta_sync` no `research/supabase/schema.sql`. Sem configuração, 100% local (localStorage).
+- **FX ao vivo:** `open.er-api.com`, cache de 36h, fallback para a cotação manual.
+
+## Rodar localmente
+
+```bash
+python3 -m http.server 8000   # na raiz do repo
+# abrir http://localhost:8000
+```
+
+---
+
+# App nativo iOS (SwiftUI) — pausado (09/11/2026)
+
+O app foi portado para **nativo SwiftUI** e está pronto no repo. **Pausado por decisão do Gabriel (10/11/2026):** a PWA é o app principal enquanto não houver conta Apple Developer paga.
 
 ## Estado do app nativo
 
@@ -82,9 +106,10 @@ Smoke de aba via env: `SIMCTL_CHILD_MALTA_TAB=dinheiro xcrun simctl launch ... a
 
 `cd Packages/MaltaKit && swift test` — 19 testes verdes (inclui regressao do parse pt-BR "10.000" e conversor QA da PWA).
 
-## Pendencias (dono: Gabriel)
+## Pendencias (dono: Gabriel) — nativo pausado
 
+- [ ] Conta Apple Developer (US$ 99/ano) — requisito para destravar o nativo (TestFlight).
 - [ ] Bundle ID final (hoje `app.malta.nana`) — confirmar antes do ASC.
 - [ ] Chaves ASC (ASC_KEY_ID / ASC_ISSUER_ID / .p8 / APPLE_TEAM_ID) para TestFlight.
-- [ ] SUPABASE_URL + ANON_KEY para ativar o sync entre os 2 iPhones.
+- [ ] SUPABASE_URL + ANON_KEY para ativar o sync (serve para PWA **e** nativo).
 - [ ] Development Team (Free Team hoje) para assinar nos aparelhos reais.
