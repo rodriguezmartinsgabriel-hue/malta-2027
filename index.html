@@ -22,7 +22,7 @@
 :root{
   --cream:#f3eddf;
   --ink:#241f1c;
-  --muted:#7d7266;
+  --muted:#675d52;
   --wine:#722f37;
   --wine-bright:#a64650;
   --olive:#5e6f35;
@@ -119,7 +119,7 @@ button{-webkit-user-select:none;user-select:none}
 .field::placeholder,textarea::placeholder,input::placeholder{color:var(--muted);opacity:.8}
 select.field{
   padding-right:36px;text-overflow:ellipsis;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237d7266' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23675d52' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 12px center;background-size:14px;
 }
 input[type=date].field{line-height:1.6;text-align:left}
@@ -187,10 +187,10 @@ input[type=date].field::-webkit-date-and-time-value{text-align:left}
 .dock button{
   flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;
   border:0;background:none;color:var(--muted);cursor:pointer;
-  padding:8px 0 7px;border-radius:24px;font-size:10px;font-weight:500;letter-spacing:-.01em;
+  padding:8px 0 7px;border-radius:24px;font-size:11px;font-weight:500;letter-spacing:-.01em;
   min-height:50px;overflow:hidden;transition:background .18s,color .18s;
 }
-.dock button svg{width:22px;height:22px;flex:0 0 auto}
+.dock button svg{width:23px;height:23px;flex:0 0 auto}
 .dock button.on{background:var(--wine-fill);color:var(--cream);box-shadow:0 6px 14px rgba(114,47,55,.28)}
 
 /* ---------- Inicio ---------- */
@@ -411,6 +411,37 @@ body.locked main,body.locked .dock{display:none}
 .auth-card .form-gap{margin-top:20px;text-align:left}
 .auth-card .note{text-align:center}
 
+/* ---------- v4 ---------- */
+.textbtn{border:0;background:none;color:var(--wine);font-size:1.0625rem;font-weight:500;min-height:44px;padding:0 4px;cursor:pointer}
+.pair{display:flex;gap:8px}
+.pair>*{flex:1 1 0;min-width:0}
+.seg button:disabled{opacity:.45;cursor:default}
+.place-chip{
+  display:inline-flex;align-items:center;gap:4px;max-width:100%;border:0;border-radius:99px;cursor:pointer;
+  background:rgba(94,111,53,.12);color:var(--olive);font-size:.8125rem;font-weight:500;padding:6px 10px;margin:4px 0 2px 6px;min-height:32px;
+}
+.place-chip svg{width:14px;height:14px;flex:0 0 auto}
+.place-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-tools{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px 6px}
+.row-tools button{border:0;border-radius:10px;background:var(--soft-strong);color:var(--ink);font-size:.8125rem;font-weight:500;padding:8px 12px;min-height:38px;cursor:pointer}
+.row-tools button:disabled{opacity:.35}
+.expense .exp-open{
+  flex:1;min-width:0;display:flex;align-items:center;gap:12px;border:0;background:none;text-align:left;cursor:pointer;padding:2px 0;min-height:44px;
+}
+.expense .exp-open>span:first-child{flex:1;min-width:0}
+.resrow{
+  display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;text-align:left;cursor:pointer;padding:10px 0;min-height:56px;
+}
+.resrow>svg:first-child{width:26px;height:26px;color:var(--wine-bright);flex:0 0 auto}
+.resrow>span{flex:1;min-width:0}
+.resrow b{display:block;font-size:.9375rem;font-weight:600;overflow-wrap:anywhere}
+.resrow small{display:block;font-size:.8125rem;color:var(--muted);overflow-wrap:anywhere}
+.resrow .chev{width:16px;height:16px;color:var(--muted);flex:0 0 auto}
+#depForm{border-top:1px solid var(--hairline)}
+.viewer{position:fixed;inset:0;z-index:120;background:rgba(20,16,14,.92);display:flex;align-items:center;justify-content:center;padding:calc(12px + var(--safe-t)) 12px calc(12px + var(--safe-b))}
+.viewer img{max-width:100%;max-height:100%;border-radius:8px;object-fit:contain}
+.viewer .iconbtn{position:absolute;top:calc(12px + var(--safe-t));right:12px;background:rgba(255,255,255,.9)}
+
 /* ---------- Impressao (PDF) ---------- */
 #printDoc{display:none}
 @media print{
@@ -485,96 +516,92 @@ body.locked main,body.locked .dock{display:none}
       <p class="hero-sub" id="cdDates"></p>
     </section>
 
-    <section class="glass card" id="wxCard">
-      <h2>Clima em Valletta</h2>
-      <div id="wxNow"><p class="note">Carregando previsão…</p></div>
-      <div class="wx-days" id="wxDays"></div>
+    <section class="glass card" style="padding-bottom:8px">
+      <h2>Próximos passos</h2>
+      <div class="rows" id="nextList"></div>
+      <button class="btn plain" id="nextAll" type="button">Ver a checklist inteira</button>
     </section>
 
     <section class="glass card">
       <h2>Minha poupança</h2>
       <div class="stats">
+        <div><small>Guardado</small><b id="mgNow">R$ 0</b></div>
         <div><small>Projeção no embarque</small><b id="mgSaved">R$ 0</b></div>
-        <div><small>Em euros hoje</small><b id="mgEur">€ 0</b></div>
       </div>
       <div class="progress" aria-hidden="true"><div id="jpFill"></div></div>
       <p class="note" id="jpText" style="margin:8px 0 6px"></p>
       <div class="rows">
-        <div class="row"><label for="inpSaved">Já guardei (R$)</label><input type="text" inputmode="decimal" id="inpSaved" autocomplete="off"></div>
         <div class="row"><label for="inpMonthly">Aporte por mês (R$)</label><input type="text" inputmode="decimal" id="inpMonthly" autocomplete="off"></div>
         <div class="row"><label for="inpMeta">Minha meta (R$)</label><input type="text" inputmode="decimal" id="inpMeta" autocomplete="off"></div>
+        <div class="row"><label for="inpSaved">Já tinha guardado (R$)</label><input type="text" inputmode="decimal" id="inpSaved" autocomplete="off"></div>
       </div>
+      <form class="addrow" id="depForm">
+        <button type="submit" aria-label="Registrar aporte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5" stroke-width="1.6"/><path d="M12 8v8M8 12h8"/></svg></button>
+        <input type="text" inputmode="decimal" id="inpDep" placeholder="Registrar um aporte (R$)" aria-label="Valor do aporte em reais" autocomplete="off" enterkeyhint="done">
+      </form>
+      <div class="rows" id="depList"></div>
+      <p class="note" style="margin-top:6px">Só você vê a sua poupança.</p>
     </section>
 
-    <section class="glass card">
-      <h2>Marcos até o embarque</h2>
-      <div class="milestone"><span class="n">1</span><div><b>Novembro de 2026</b><p>Abrir as contas internacionais e testar com R$ 200 a 500. Definir o aporte mensal.</p></div></div>
-      <div class="milestone"><span class="n">2</span><div><b>Fevereiro de 2027</b><p>Declarar as contas no exterior no IRPF de 2027 (Bens e Direitos).</p></div></div>
-      <div class="milestone"><span class="n">3</span><div><b>Junho de 2027</b><p>Começar a converter o CDI para euro em 3 ou 4 parcelas mensais.</p></div></div>
-      <details>
-        <summary>Mostrar os outros 2</summary>
-        <div class="milestone"><span class="n">4</span><div><b>Julho de 2027</b><p>Revisar o IOF vigente e as promoções dos apps, avisar os bancos, pedir o ETIAS e contratar o seguro.</p></div></div>
-        <div class="milestone"><span class="n">5</span><div><b>Agosto de 2027</b><p>Testar os dois cartões, imprimir passaportes e reservas, embarcar.</p></div></div>
-      </details>
+    <section class="glass card" id="wxCard">
+      <h2>Clima em Valletta hoje</h2>
+      <div id="wxNow"><p class="note">Carregando previsão…</p></div>
+      <div class="wx-days" id="wxDays"></div>
     </section>
   </div>
 </div>
 
-<!-- ============ DINHEIRO ============ -->
-<div class="tab" id="tab-dinheiro" role="tabpanel" aria-label="Dinheiro">
+<!-- ============ ROTEIRO ============ -->
+<div class="tab" id="tab-roteiro" role="tabpanel" aria-label="Roteiro">
   <div class="wrap">
-    <header class="screen-head"><h1>Dinheiro</h1></header>
+    <header class="screen-head">
+      <h1>Roteiro</h1>
+      <button class="textbtn" id="itinEditBtn" type="button">Editar</button>
+    </header>
 
     <section class="glass card">
-      <h2>Cotação do euro</h2>
-      <div class="rate"><span id="fxVal">R$ 6,18</span><small id="fxMode">manual</small></div>
-      <div class="rows" style="margin-top:10px">
-        <div class="row"><label for="fxToggle">Cotação ao vivo</label>
-          <span class="toggle"><input type="checkbox" id="fxToggle" checked><i></i></span>
+      <div class="rows">
+        <div class="row"><label for="inpStart">Embarque</label>
+          <input class="field" type="date" id="inpStart" style="width:auto;flex:0 1 190px;min-height:40px;padding:6px 12px">
         </div>
-        <div class="row" id="fxManualRow"><label for="inpFx">Cotação manual (R$)</label><input type="text" inputmode="decimal" id="inpFx" autocomplete="off"></div>
       </div>
-      <p class="note" id="fxNote" style="margin-top:6px"></p>
+      <p class="note" id="itinHint" style="margin-top:6px">Toque na data de um dia para marcá-lo como feito.</p>
+    </section>
+
+    <div id="itinerary"></div>
+
+    <section class="glass card" id="mapCard">
+      <h2>Mapa</h2>
+      <form class="map-search" id="mapForm">
+        <input class="field" id="mapQ" type="search" placeholder="Buscar lugar em Malta" aria-label="Buscar lugar em Malta" enterkeyhint="search" autocomplete="off">
+        <button class="btn" type="submit">Buscar</button>
+      </form>
+      <div class="place-res" id="placeRes"></div>
+      <div class="map-box"><div id="map"></div></div>
+      <div class="map-search" id="placeSave" hidden style="margin-bottom:10px">
+        <select class="field" id="placeDay" aria-label="Dia do roteiro"></select>
+        <button class="btn" id="placeSaveBtn" type="button">Salvar no dia</button>
+      </div>
+      <p class="note" id="mapNote" style="margin-bottom:10px">Os pins são os lugares de cada dia do roteiro.</p>
+      <button class="btn soft" id="mapNav" type="button">Rotas até Valletta</button>
+      <button class="btn plain" id="mapPins" type="button">Ver a ilha inteira</button>
+      <button class="btn plain" id="mapOffline" type="button">Baixar o mapa para usar sem internet</button>
     </section>
 
     <section class="glass card">
-      <h2>Converter</h2>
-      <div class="rows">
-        <div class="row"><label for="inpBRL">Reais (R$)</label><input type="text" inputmode="decimal" id="inpBRL" autocomplete="off"></div>
-      </div>
-      <select class="field" id="presetSel" aria-label="Caminho da conversão" style="margin-top:6px"></select>
-      <div class="conv-out">
-        <small>Você recebe</small>
-        <div class="big" id="convEur">€ 0</div>
-        <p class="note" id="convCost"></p>
-      </div>
-    </section>
-
-    <section class="glass card">
-      <h2>Onde abrir a conta</h2>
-      <div class="rows">
-        <div class="account"><div><b>Wise Rende+</b><small>Euro rende cerca de 1,7% ao ano</small></div><span class="cost">1,8 a 1,9%</span></div>
-        <div class="account"><div><b>C6 Conta Global</b><small>Conta em euro</small></div><span class="cost">cerca de 4,3%</span></div>
-        <div class="account"><div><b>Nomad</b><small>Conta em dólar, euro gradual</small></div><span class="cost">4,5 a 5,5%</span></div>
-        <div class="account"><div><b>Revolut Standard</b><small>Sem custo até o teto mensal</small></div><span class="cost">cerca de 0%</span></div>
-        <div class="account"><div><b>Crédito brasileiro</b><small>Fatura só em reais</small></div><span class="cost">7,5 a 9%</span></div>
-      </div>
-      <p class="note" style="margin-top:10px">Custo total estimado sobre o valor convertido. A Wise (Rende+) tem o menor custo e o IOF cai para 1,1% na conversão. Como segunda conta: Nomad ou Inter Global. Nenhuma tem FGC, então vale escolher pela solidez e pelo custo.</p>
-    </section>
-
-    <section class="glass card">
-      <h2>Impostos</h2>
-      <div class="rows">
-        <div class="row"><span>IOF no câmbio</span><b>3,5%</b></div>
-        <div class="row"><span>IOF via investimento</span><b>1,1%</b></div>
-        <div class="row"><span>FGC em euro ou dólar</span><b>Não existe</b></div>
-      </div>
-      <p class="note" style="margin-top:8px">Valores de novembro de 2026. Isto não é conselho financeiro.</p>
+      <h2>Diário</h2>
+      <select class="field" id="diaryDay" aria-label="Dia do diário"></select>
+      <textarea class="field" id="diaryNote" placeholder="Como foi o dia?" maxlength="1200" aria-label="Minha anotação do dia" style="margin-top:10px"></textarea>
+      <div class="other-note" id="diaryOther" hidden><small id="diaryOtherWho"></small><p id="diaryOtherTxt"></p></div>
+      <div class="photo-grid" id="photoGrid"></div>
+      <input type="file" id="photoPick" accept="image/*" multiple hidden>
+      <button class="btn soft" id="photoAdd" type="button" style="margin-top:10px">Adicionar fotos</button>
+      <p class="note" style="margin-top:8px">Cada uma escreve a sua anotação do dia. As duas veem as anotações e as fotos.</p>
     </section>
   </div>
 </div>
 
-<!-- ============ ORCAMENTO ============ -->
+<!-- ============ GASTOS ============ -->
 <div class="tab" id="tab-orcamento" role="tabpanel" aria-label="Gastos">
   <div class="wrap">
     <header class="screen-head"><h1>Gastos</h1></header>
@@ -595,16 +622,23 @@ body.locked main,body.locked .dock{display:none}
         <div><small>Meu orçamento</small><b id="bBudget">€ 0</b></div>
       </div>
       <div class="progress" aria-hidden="true"><div id="bFill"></div></div>
-      <div class="rows" style="margin-top:10px">
-        <div class="row"><span>Gastos juntas (total)</span><b id="bShared">€ 0</b></div>
-        <div class="row"><span>Só meus</span><b id="bPersonal">€ 0</b></div>
-      </div>
+      <div class="rows" id="catList" style="margin-top:10px"></div>
     </section>
 
     <form class="glass card form-gap" id="expForm">
-      <h2>Novo gasto</h2>
+      <h2 id="expFormTitle">Novo gasto</h2>
       <input class="field" type="text" id="expDesc" placeholder="Jantar, ferry, hospedagem…" maxlength="80" aria-label="Descrição" autocomplete="off" enterkeyhint="next">
-      <input class="field" type="text" inputmode="decimal" id="expEur" placeholder="Valor em euros" aria-label="Valor em euros" autocomplete="off" enterkeyhint="done">
+      <div class="pair">
+        <input class="field" type="text" inputmode="decimal" id="expEur" placeholder="Valor" aria-label="Valor" autocomplete="off" enterkeyhint="done">
+        <div class="seg" role="group" aria-label="Moeda" id="curSeg" style="flex:0 0 112px">
+          <button type="button" data-cur="eur" class="on" aria-pressed="true">€</button>
+          <button type="button" data-cur="brl" aria-pressed="false">R$</button>
+        </div>
+      </div>
+      <div class="pair">
+        <select class="field" id="expCat" aria-label="Categoria"></select>
+        <input class="field" type="date" id="expDate" aria-label="Data do gasto">
+      </div>
       <div class="seg" role="group" aria-label="Tipo de gasto" id="scopeSeg">
         <button type="button" data-scope="shared" class="on" aria-pressed="true">Juntas</button>
         <button type="button" data-scope="mine" aria-pressed="false">Só meu</button>
@@ -614,61 +648,43 @@ body.locked main,body.locked .dock{display:none}
         <div class="seg" role="group" aria-label="Quem pagou" id="payerSeg">
           <button type="button" data-payer="nana" class="on" aria-pressed="true">Nana</button>
           <button type="button" data-payer="dani" aria-pressed="false">Dani</button>
-          <button type="button" data-payer="ambas" aria-pressed="false">Meio a meio</button>
+          <button type="button" data-payer="ambas" aria-pressed="false">Cada uma</button>
+        </div>
+        <div class="rows" id="splitWrap" style="margin-top:6px">
+          <div class="row"><label for="expSplit">Parte da Nana (%)</label><input type="text" inputmode="numeric" id="expSplit" value="50" autocomplete="off"></div>
         </div>
       </div>
-      <button class="btn" type="submit">Adicionar gasto</button>
+      <button class="btn" type="submit" id="expSubmit">Adicionar gasto</button>
+      <button class="btn plain" type="button" id="expCancel" hidden>Cancelar edição</button>
     </form>
 
     <section class="glass card">
       <h2>Histórico</h2>
       <div class="rows" id="expenseList"></div>
       <p class="empty" id="expEmpty">Nenhum gasto ainda. O que for lançado como “Juntas” entra no acerto.</p>
+      <p class="note" id="expHint" hidden style="margin-top:6px">Toque num gasto para editar.</p>
+    </section>
+
+    <section class="glass card">
+      <h2>Conversor</h2>
+      <div class="rate"><span id="fxVal">R$ 6,18</span><small id="fxMode">manual</small></div>
+      <div class="rows" style="margin-top:10px">
+        <div class="row"><label for="fxToggle">Cotação do euro ao vivo</label>
+          <span class="toggle"><input type="checkbox" id="fxToggle" checked><i></i></span>
+        </div>
+        <div class="row" id="fxManualRow"><label for="inpFx">Cotação manual (R$)</label><input type="text" inputmode="decimal" id="inpFx" autocomplete="off"></div>
+        <div class="row"><label for="inpBRL">Converter (R$)</label><input type="text" inputmode="decimal" id="inpBRL" autocomplete="off"></div>
+      </div>
+      <select class="field" id="presetSel" aria-label="Caminho da conversão" style="margin-top:6px"></select>
+      <div class="conv-out">
+        <small>Você recebe</small>
+        <div class="big" id="convEur">€ 0</div>
+        <p class="note" id="convCost"></p>
+      </div>
+      <p class="note" id="fxNote" style="margin-top:6px"></p>
     </section>
 
     <button class="btn soft" id="btnPdf" type="button" style="margin-bottom:12px">Imprimir ou salvar em PDF</button>
-  </div>
-</div>
-
-<!-- ============ ROTEIRO ============ -->
-<div class="tab" id="tab-roteiro" role="tabpanel" aria-label="Roteiro">
-  <div class="wrap">
-    <header class="screen-head"><h1>Roteiro</h1></header>
-
-    <section class="glass card">
-      <div class="rows">
-        <div class="row"><label for="inpStart">Embarque</label>
-          <input class="field" type="date" id="inpStart" style="width:auto;flex:0 1 190px;min-height:40px;padding:6px 12px">
-        </div>
-      </div>
-      <p class="note" style="margin-top:6px">Toque na data de um dia para marcá-lo como feito.</p>
-    </section>
-
-    <div id="itinerary"></div>
-
-    <section class="glass card">
-      <h2>Mapa</h2>
-      <form class="map-search" id="mapForm">
-        <input class="field" id="mapQ" type="search" placeholder="Buscar lugar em Malta" aria-label="Buscar lugar em Malta" enterkeyhint="search" autocomplete="off">
-        <button class="btn" type="submit">Buscar</button>
-      </form>
-      <div class="place-res" id="placeRes"></div>
-      <div class="map-box"><div id="map"></div></div>
-      <p class="note" id="mapNote" style="margin-bottom:10px">Toque num pin para escolher o destino.</p>
-      <button class="btn soft" id="mapNav" type="button">Rotas até Valletta</button>
-      <button class="btn plain" id="mapPins" type="button">Ver a ilha inteira</button>
-    </section>
-
-    <section class="glass card">
-      <h2>Diário</h2>
-      <select class="field" id="diaryDay" aria-label="Dia do diário"></select>
-      <textarea class="field" id="diaryNote" placeholder="Como foi o dia?" maxlength="1200" aria-label="Minha anotação do dia" style="margin-top:10px"></textarea>
-      <div class="other-note" id="diaryOther" hidden><small id="diaryOtherWho"></small><p id="diaryOtherTxt"></p></div>
-      <div class="photo-grid" id="photoGrid"></div>
-      <input type="file" id="photoPick" accept="image/*" multiple hidden>
-      <button class="btn soft" id="photoAdd" type="button" style="margin-top:10px">Adicionar fotos</button>
-      <p class="note" style="margin-top:8px">Cada uma escreve a sua anotação do dia. As duas veem as anotações e as fotos.</p>
-    </section>
   </div>
 </div>
 
@@ -701,10 +717,17 @@ body.locked main,body.locked .dock{display:none}
   </div>
 </div>
 
-<!-- ============ LINKS ============ -->
-<div class="tab" id="tab-links" role="tabpanel" aria-label="Links">
+<!-- ============ VIAGEM ============ -->
+<div class="tab" id="tab-viagem" role="tabpanel" aria-label="Viagem">
   <div class="wrap">
-    <header class="screen-head"><h1>Links</h1></header>
+    <header class="screen-head"><h1>Viagem</h1></header>
+
+    <section class="glass card" style="padding-bottom:10px">
+      <h2>Reservas e documentos</h2>
+      <div class="rows" id="resList"></div>
+      <p class="empty" id="resEmpty">Guarde aqui voos, hospedagem, seguro e a foto do passaporte. Fica disponível sem internet.</p>
+      <button class="btn soft" id="resAdd" type="button" style="margin-top:8px">Adicionar</button>
+    </section>
 
     <a class="solid emergency" href="tel:112">
       <b>112</b>
@@ -724,6 +747,18 @@ body.locked main,body.locked .dock{display:none}
         <div class="row"><span>Consulado</span><b>Roma (confirmar)</b></div>
       </div>
     </section>
+
+    <section class="glass card">
+      <h2>Onde abrir a conta em euro</h2>
+      <div class="rows">
+        <div class="account"><div><b>Wise Rende+</b><small>Euro rende cerca de 1,7% ao ano</small></div><span class="cost">1,8 a 1,9%</span></div>
+        <div class="account"><div><b>C6 Conta Global</b><small>Conta em euro</small></div><span class="cost">cerca de 4,3%</span></div>
+        <div class="account"><div><b>Nomad</b><small>Conta em dólar, euro gradual</small></div><span class="cost">4,5 a 5,5%</span></div>
+        <div class="account"><div><b>Revolut Standard</b><small>Sem custo até o teto mensal</small></div><span class="cost">cerca de 0%</span></div>
+        <div class="account"><div><b>Crédito brasileiro</b><small>Fatura só em reais</small></div><span class="cost">7,5 a 9%</span></div>
+      </div>
+      <p class="note" style="margin-top:10px">Custo total estimado sobre o valor convertido, com IOF de 3,5% no câmbio e 1,1% via investimento (valores de novembro de 2026). Nenhuma dessas contas tem FGC. Isto não é conselho financeiro.</p>
+    </section>
   </div>
 </div>
 
@@ -734,16 +769,14 @@ body.locked main,body.locked .dock{display:none}
 <nav class="dock" role="tablist" aria-label="Seções">
   <button type="button" role="tab" data-tab="inicio" class="on" aria-selected="true">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9h11v-9"/></svg>Início</button>
-  <button type="button" role="tab" data-tab="dinheiro" aria-selected="false">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M15 9.2a3.6 3.6 0 1 0 0 5.6M8 11h5M8 13.4h5"/></svg>Dinheiro</button>
-  <button type="button" role="tab" data-tab="orcamento" aria-selected="false">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 9.5h8M8 13h5"/></svg>Gastos</button>
   <button type="button" role="tab" data-tab="roteiro" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5 4 7v12l5-2 6 2 5-2V5l-5 2z"/><path d="M9 5v12M15 7v12"/></svg>Roteiro</button>
+  <button type="button" role="tab" data-tab="orcamento" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M15 9.2a3.6 3.6 0 1 0 0 5.6M8 11h5M8 13.4h5"/></svg>Gastos</button>
   <button type="button" role="tab" data-tab="checklist" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5 5.5 8 8.5 4.5"/><path d="M4 12.5 5.5 14 8.5 10.5"/><path d="M4 18.5 5.5 20 8.5 16.5"/><path d="M11 6.5h9M11 12.5h9M11 18.5h9"/></svg>Checklist</button>
-  <button type="button" role="tab" data-tab="links" aria-selected="false">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 14.5 14.5 9.5"/><path d="M11 7.5 13 5.5a4 4 0 0 1 5.7 5.7L16.7 13"/><path d="M13 16.5 11 18.5a4 4 0 0 1-5.7-5.7L7.3 11"/></svg>Links</button>
+  <button type="button" role="tab" data-tab="viagem" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="11" rx="2.5"/><path d="M9 8V6.5A1.5 1.5 0 0 1 10.5 5h3A1.5 1.5 0 0 1 15 6.5V8M4 13h16"/></svg>Viagem</button>
 </nav>
 
 <!-- Conta -->
@@ -765,7 +798,7 @@ body.locked main,body.locked .dock{display:none}
         <button type="button" data-who="dani">Dani</button>
       </div></div>
       <input class="field" type="text" id="sheetName" placeholder="Como quer ser chamada" maxlength="24" aria-label="Nome" autocomplete="off">
-      <p class="note">Sua poupança e seus gastos “só meus” ficam só na sua conta. Roteiro, checklist, diário e gastos juntas são das duas.</p>
+      <p class="note">Sua poupança, seus gastos “só meus” e seus documentos “só meus” ficam só na sua conta. O resto é das duas.</p>
     </section>
 
     <section class="card">
@@ -781,7 +814,7 @@ body.locked main,body.locked .dock{display:none}
 
     <section class="card">
       <h3>Backup</h3>
-      <p class="note" style="margin-bottom:10px">Salve uma cópia dos dados ou traga os dados de outro aparelho. As fotos do diário ficam na nuvem e não entram no arquivo.</p>
+      <p class="note" style="margin-bottom:10px">Salve uma cópia dos dados em arquivo. Fotos e anexos ficam na nuvem e não entram no arquivo.</p>
       <button class="btn soft" id="backupExport" type="button">Exportar backup</button>
       <button class="btn soft" id="backupImport" type="button">Importar backup</button>
       <input type="file" id="backupFile" accept="application/json,.json" hidden>
@@ -797,6 +830,47 @@ body.locked main,body.locked .dock{display:none}
   </div>
 </div>
 
+<!-- Reserva / documento -->
+<div class="sheet" id="resSheet" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+  <div class="scrim" data-close></div>
+  <div class="panel">
+    <div class="grab" aria-hidden="true"></div>
+    <div class="head">
+      <h2 id="resTitle">Nova reserva</h2>
+      <button class="iconbtn" type="button" aria-label="Fechar" data-close>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <form class="form-gap" id="resForm">
+      <div class="seg" role="group" aria-label="Quem vê" id="resScope">
+        <button type="button" data-scope="shared" class="on" aria-pressed="true">Das duas</button>
+        <button type="button" data-scope="mine" aria-pressed="false">Só meu</button>
+      </div>
+      <select class="field" id="resKind" aria-label="Tipo"></select>
+      <input class="field" type="text" id="resName" placeholder="Nome (ex.: Voo de ida, Hotel em Valletta)" maxlength="80" aria-label="Nome" autocomplete="off">
+      <div class="pair">
+        <input class="field" type="text" id="resCode" placeholder="Código ou número" maxlength="40" aria-label="Código ou número" autocomplete="off" autocapitalize="characters">
+        <input class="field" type="date" id="resWhen" aria-label="Data">
+      </div>
+      <textarea class="field" id="resDetail" placeholder="Endereço, horário, telefone, observações" maxlength="600" aria-label="Detalhes"></textarea>
+      <div class="rows" id="resFiles"></div>
+      <input type="file" id="resPick" accept="image/*,application/pdf" multiple hidden>
+      <button class="btn soft" type="button" id="resAttach">Anexar foto ou PDF</button>
+      <button class="btn" type="submit">Salvar</button>
+      <button class="btn plain" type="button" id="resCopy" hidden>Copiar código</button>
+      <button class="btn plain" type="button" id="resDelete" hidden>Apagar</button>
+    </form>
+  </div>
+</div>
+
+<!-- Visualizador de imagem -->
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Anexo">
+  <img id="viewerImg" alt="Anexo">
+  <button class="iconbtn" id="viewerClose" type="button" aria-label="Fechar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastTxt"></span><button type="button" id="toastAct" hidden></button></div>
 
 <script>
@@ -808,9 +882,12 @@ const CONFIG = {
   supabaseKey: 'sb_publishable_pN2x741M8NLBR5CboeBnxw_5TLpBX4f',
   trip: 'nana-dani',
   bucket: 'malta-diary',
+  docsBucket: 'malta-docs',
   google: false
 };
-const APP_VERSION = '3.0.0';
+const APP_VERSION = '4.0.0';
+/* Integridade dos scripts externos: se o CDN servir outra coisa, o navegador recusa. */
+const SRI = {maplibreJs: 'sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj', maplibreCss: 'sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V', supabase: 'sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug'};
 
 const $  = (s, c) => (c || document).querySelector(s);
 const $$ = (s, c) => Array.from((c || document).querySelectorAll(s));
@@ -902,35 +979,67 @@ const PERSONAL_DEFAULT = {saved: 0, monthly: 800, meta: 10000, t: 0};
    - pv (pessoal): poupanca e gastos "so meus". So a dona le e grava (linha propria no servidor).
    Cada pedaco carrega a hora da ultima edicao (t) e apagados viram lapides (xxDel), entao juntar
    dois estados nunca perde a edicao de ninguem: vence o mais recente de cada campo. */
+const SEED_PLACES = {0: ['Valletta', 35.8989, 14.5146], 2: ['Mdina e Rabat', 35.8860, 14.4025], 3: ['Comino e Blue Lagoon', 36.0136, 14.3232],
+  5: ['Victoria, Gozo', 36.0444, 14.2398], 6: ['Ramla Bay', 36.0614, 14.2844], 7: ['Sliema', 35.9125, 14.5019], 8: ['Marsaxlokk', 35.8412, 14.5443],
+  9: ['Hagar Qim', 35.8276, 14.4420], 10: ['St Peter’s Pool', 35.8328, 14.5628], 12: ['Senglea e Birgu', 35.8878, 14.5221], 14: ['Golden Bay', 35.9341, 14.3447]};
+const seedPlace = i => SEED_PLACES[i] ? {name: SEED_PLACES[i][0], lat: SEED_PLACES[i][1], lon: SEED_PLACES[i][2]} : null;
+const emptyRow = () => ({title: '', tt: 0, note: '', tn: 0, done: false, td: 0, place: null, tp: 0});
+const CATS = {comida: 'Comida', transporte: 'Transporte', hospedagem: 'Hospedagem', passeio: 'Passeios', compras: 'Compras', outros: 'Outros'};
+const KINDS = {voo: 'Voo', hospedagem: 'Hospedagem', transporte: 'Transporte', passeio: 'Passeio', seguro: 'Seguro', documento: 'Documento', outro: 'Outro'};
 function freshShared(){
   const checklist = {};
   GROUPS.forEach(g => { checklist[g] = CHECK_SEED[g].map((text, i) => ({id: g + '-' + i, text: text, done: false, t: 0, c: i})); });
   return {
     v: 3, by: '',
     start: {v: TRIP_START, t: 0},
+    days: {v: ITINERARY_SEED.length, t: 0},
     expenses: [], expDel: {},
-    itinerary: ITINERARY_SEED.map(title => ({title: title, tt: 0, note: '', tn: 0, done: false, td: 0})),
+    itinerary: ITINERARY_SEED.map((title, i) => ({title: title, tt: 0, note: '', tn: 0, done: false, td: 0, place: seedPlace(i), tp: 0})),
     checklist: checklist, ckDel: {},
     diary: {},
-    photos: [], phDel: {}
+    photos: [], phDel: {},
+    res: [], resDel: {}
   };
 }
-function freshPrivate(){ return {v: 3, personal: Object.assign({}, PERSONAL_DEFAULT), expenses: [], expDel: {}}; }
+function freshPrivate(){ return {v: 3, personal: Object.assign({}, PERSONAL_DEFAULT), expenses: [], expDel: {}, deposits: [], depDel: {}, res: [], resDel: {}}; }
 const num = v => +v || 0;
+const byAt = (x, y) => x.at - y.at || (x.id < y.id ? -1 : 1);
 function cleanDel(raw){
   const out = {};
   if (raw && typeof raw === 'object') Object.keys(raw).sort().forEach(k => { out[k] = num(raw[k]) || 1; });
   return out;
 }
+/* De varias copias do mesmo item (mesmo id), fica a editada por ultimo. */
+function newest(list, del){
+  const m = new Map();
+  (Array.isArray(list) ? list : []).forEach(x => {
+    if (!x || !x.id || del[x.id]) return;
+    const id = String(x.id), cur = m.get(id);
+    if (!cur || num(x.t) > num(cur.t) || (num(x.t) === num(cur.t) && JSON.stringify(x) > JSON.stringify(cur))) m.set(id, x);
+  });
+  return Array.from(m.values());
+}
 function cleanExpenses(raw, del, scope){
-  if (!Array.isArray(raw)) return [];
-  const seen = {};
-  return raw.filter(e => e && e.id && !del[e.id] && !seen[e.id] && (seen[e.id] = 1) && isFinite(e.eur) && e.eur > 0).map(e => ({
+  return newest(raw, del).filter(e => isFinite(e.eur) && e.eur > 0).map(e => ({
     id: String(e.id), desc: String(e.desc || '').slice(0, 80), eur: +e.eur,
     payer: ['nana', 'dani', 'ambas'].indexOf(e.payer) > -1 ? e.payer : 'ambas',
-    scope: scope, at: num(e.at) || 1
-  })).sort((x, y) => x.at - y.at || (x.id < y.id ? -1 : 1));
+    scope: scope, cat: CATS[e.cat] ? e.cat : 'outros',
+    split: scope === 'shared' && e.split != null ? Math.min(100, Math.max(0, Math.round(num(e.split)))) : 50,
+    at: num(e.at) || 1, t: num(e.t)
+  })).sort(byAt);
 }
+function cleanRes(raw, del, scope){
+  return newest(raw, del).filter(r => r.title).map(r => ({
+    id: String(r.id), kind: KINDS[r.kind] ? r.kind : 'outro', title: String(r.title).slice(0, 80), code: String(r.code || '').slice(0, 40),
+    when: /^\d{4}-\d{2}-\d{2}$/.test(r.when) ? r.when : '', detail: String(r.detail || '').slice(0, 600),
+    files: (Array.isArray(r.files) ? r.files : []).filter(f => f && f.id).slice(0, 6).map(f => ({id: String(f.id), name: String(f.name || 'Anexo').slice(0, 60), type: String(f.type || 'image/jpeg').slice(0, 40)})),
+    scope: scope, at: num(r.at) || 1, t: num(r.t)
+  })).sort(byAt);
+}
+function cleanDeposits(raw, del){
+  return newest(raw, del).filter(d => d.brl > 0).map(d => ({id: String(d.id), brl: +d.brl, at: num(d.at) || 1, t: num(d.t)})).sort(byAt);
+}
+const cleanPlace = p => p && typeof p === 'object' && isFinite(p.lat) && isFinite(p.lon) && p.name ? {name: String(p.name).slice(0, 60), lat: +p.lat, lon: +p.lon} : null;
 function sanitizeShared(raw){
   const out = freshShared();
   if (!raw || typeof raw !== 'object') return out;
@@ -938,9 +1047,18 @@ function sanitizeShared(raw){
   if (raw.start && /^\d{4}-\d{2}-\d{2}$/.test(raw.start.v)) out.start = {v: raw.start.v, t: num(raw.start.t)};
   out.expDel = cleanDel(raw.expDel);
   out.expenses = cleanExpenses(raw.expenses, out.expDel, 'shared');
-  if (Array.isArray(raw.itinerary) && raw.itinerary.length) out.itinerary = raw.itinerary.slice(0, 60).map(r => r || {}).map(r => ({
-    title: String(r.title || '').slice(0, 120), tt: num(r.tt), note: String(r.note || '').slice(0, 200), tn: num(r.tn), done: !!r.done, td: num(r.td)
+  if (Array.isArray(raw.itinerary) && raw.itinerary.length) out.itinerary = raw.itinerary.slice(0, 60).map(r => r || {}).map((r, i) => ({
+    title: String(r.title || '').slice(0, 120), tt: num(r.tt), note: String(r.note || '').slice(0, 200), tn: num(r.tn), done: !!r.done, td: num(r.td),
+    /* Linhas de antes do mapa ligado ao roteiro ganham o lugar original, se o plano do dia nao mudou. */
+    place: r.place === undefined ? (plainText(r.title) === plainText(ITINERARY_SEED[i]) ? seedPlace(i) : null) : cleanPlace(r.place),
+    tp: num(r.tp)
   }));
+  const dv = raw.days && num(raw.days.v) ? Math.min(60, Math.max(1, Math.round(num(raw.days.v)))) : out.itinerary.length;
+  out.days = {v: dv, t: raw.days ? num(raw.days.t) : 0};
+  while (out.itinerary.length < dv) out.itinerary.push(emptyRow());
+  out.itinerary.length = dv;
+  out.resDel = cleanDel(raw.resDel);
+  out.res = cleanRes(raw.res, out.resDel, 'shared');
   out.ckDel = cleanDel(raw.ckDel);
   if (raw.checklist && typeof raw.checklist === 'object') GROUPS.forEach(g => {
     const arr = raw.checklist[g], seen = {};
@@ -971,6 +1089,10 @@ function sanitizePrivate(raw){
   if (p && typeof p === 'object') out.personal = {saved: Math.max(0, num(p.saved)), monthly: Math.max(0, num(p.monthly)), meta: Math.max(0, num(p.meta)), t: num(p.t)};
   out.expDel = cleanDel(raw.expDel);
   out.expenses = cleanExpenses(raw.expenses, out.expDel, 'mine');
+  out.depDel = cleanDel(raw.depDel);
+  out.deposits = cleanDeposits(raw.deposits, out.depDel);
+  out.resDel = cleanDel(raw.resDel);
+  out.res = cleanRes(raw.res, out.resDel, 'mine');
   return out;
 }
 /* Ultima edicao vence. No empate de horario, um criterio fixo decide, para os dois aparelhos chegarem ao mesmo resultado. */
@@ -991,13 +1113,17 @@ function mergeShared(a, b){
   out.start = {v: st[0], t: st[1]};
   out.expDel = mergeDel(a.expDel, b.expDel);
   out.expenses = a.expenses.concat(b.expenses);
+  const dy = lww(a.days.v, a.days.t, b.days.v, b.days.t);
+  out.days = {v: dy[0], t: dy[1]};
   out.itinerary = [];
   for (let i = 0; i < Math.max(a.itinerary.length, b.itinerary.length); i++){
     const x = a.itinerary[i], y = b.itinerary[i];
     if (!x || !y){ out.itinerary.push(x || y); continue; }
-    const ti = lww(x.title, x.tt, y.title, y.tt), no = lww(x.note, x.tn, y.note, y.tn), dn = lww(x.done, x.td, y.done, y.td);
-    out.itinerary.push({title: ti[0], tt: ti[1], note: no[0], tn: no[1], done: dn[0], td: dn[1]});
+    const ti = lww(x.title, x.tt, y.title, y.tt), no = lww(x.note, x.tn, y.note, y.tn), dn = lww(x.done, x.td, y.done, y.td), pl = lww(x.place, x.tp, y.place, y.tp);
+    out.itinerary.push({title: ti[0], tt: ti[1], note: no[0], tn: no[1], done: dn[0], td: dn[1], place: pl[0], tp: pl[1]});
   }
+  out.resDel = mergeDel(a.resDel, b.resDel);
+  out.res = a.res.concat(b.res);
   out.ckDel = mergeDel(a.ckDel, b.ckDel);
   GROUPS.forEach(g => {
     const map = new Map();
@@ -1029,6 +1155,10 @@ function mergePrivate(a, b){
     : (JSON.stringify(b.personal) > JSON.stringify(a.personal) ? b.personal : a.personal);
   out.expDel = mergeDel(a.expDel, b.expDel);
   out.expenses = a.expenses.concat(b.expenses);
+  out.depDel = mergeDel(a.depDel, b.depDel);
+  out.deposits = a.deposits.concat(b.deposits);
+  out.resDel = mergeDel(a.resDel, b.resDel);
+  out.res = a.res.concat(b.res);
   return sanitizePrivate(out);
 }
 const sameShared = (a, b) => JSON.stringify(Object.assign({}, a, {by: ''})) === JSON.stringify(Object.assign({}, b, {by: ''}));
@@ -1036,6 +1166,7 @@ const sameShared = (a, b) => JSON.stringify(Object.assign({}, a, {by: ''})) === 
 /* ---------- Estado no aparelho ---------- */
 let SH = null, PV = null;
 let prefs = Object.assign({profile: null, uid: '', tab: 'inicio', fxManual: DEFAULT_FX, liveFx: true, fxLive: null, wx: null, lastSync: 0, pendingUp: []}, ls.get('prefs', {}));
+prefs.pendingUp = (Array.isArray(prefs.pendingUp) ? prefs.pendingUp : []).map(x => typeof x === 'string' ? {id: x, b: CONFIG.bucket, p: CONFIG.trip + '/' + x + '.jpg', ct: 'image/jpeg'} : x).filter(x => x && x.id);
 function savePrefs(){ ls.set('prefs', prefs); }
 function me(){ return prefs.profile && WHO[prefs.profile.who] ? prefs.profile.who : 'nana'; }
 function other(){ return me() === 'nana' ? 'dani' : 'nana'; }
@@ -1171,7 +1302,7 @@ function registerPhoto(blob, day){
   const id = uid();
   return blobPut(id, blob).then(() => {
     SH.photos.push({id: id, day: day, by: me(), at: Date.now()});
-    prefs.pendingUp.push(id);
+    prefs.pendingUp.push({id: id, b: CONFIG.bucket, p: CONFIG.trip + '/' + id + '.jpg', ct: 'image/jpeg'});
   });
 }
 /* Fotos das versoes antigas (por dia, so no aparelho) entram no formato novo. */
@@ -1300,20 +1431,58 @@ function monthsLeft(){
   const today = new Date(), end = atNoon(SH.start.v);
   return Math.max(0, (end.getFullYear() - today.getFullYear()) * 12 + (end.getMonth() - today.getMonth()));
 }
+const savedTotal = () => mine().saved + PV.deposits.reduce((s, d) => s + d.brl, 0);
 function renderSavings(){
-  const p = mine(), months = monthsLeft();
-  const projected = p.saved + p.monthly * months;
+  const p = mine(), months = monthsLeft(), now = savedTotal();
+  const projected = now + p.monthly * months;
   const pct = p.meta > 0 ? Math.min(100, projected / p.meta * 100) : 0;
+  $('#mgNow').textContent = brl(now);
   $('#mgSaved').textContent = brl(projected);
-  $('#mgEur').textContent = eur(Math.round(projected / fx()));
   $('#jpFill').style.width = pct + '%';
   const gap = p.meta - projected;
   const aportes = months === 1 ? '1 aporte' : months + ' aportes';
-  $('#jpText').textContent = p.meta <= 0 ? 'Defina uma meta para acompanhar.'
+  $('#jpText').textContent = (p.meta <= 0 ? 'Defina uma meta para acompanhar.'
     : gap <= 0 ? 'Com ' + aportes + ' até o embarque, você passa da meta de ' + brl(p.meta) + '.'
-    : 'Com ' + aportes + ' até o embarque, faltam ' + brl(gap) + ' para a meta de ' + brl(p.meta) + '.';
+    : 'Com ' + aportes + ' até o embarque, faltam ' + brl(gap) + ' para a meta de ' + brl(p.meta) + '.') +
+    (now > 0 ? ' Hoje o guardado vale ' + eur(Math.round(now / fx())) + '.' : '');
   showSaved(); showMonthly(); showMeta();
+  $('#depList').innerHTML = PV.deposits.slice().reverse().slice(0, 6).map(d =>
+    '<div class="expense"><div><b>Aporte</b><small>' + new Date(d.at).toLocaleDateString('pt-BR', {day: '2-digit', month: 'long', year: 'numeric'}) + '</small></div>' +
+    '<span class="eur">' + brl(d.brl) + '</span><button type="button" class="del" data-dep="' + esc(d.id) + '" aria-label="Remover aporte de ' + brl(d.brl) + '">' + X_SVG + '</button></div>').join('');
 }
+$('#depForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = parseNum($('#inpDep').value);
+  if (v <= 0){ $('#inpDep').focus(); toast('Digite o valor do aporte.'); return; }
+  PV.deposits.push({id: uid(), brl: Math.round(v * 100) / 100, at: Date.now(), t: Date.now()});
+  $('#inpDep').value = ''; $('#inpDep').blur();
+  commit(); renderSavings();
+  toast('Aporte registrado.');
+});
+$('#depList').addEventListener('click', e => {
+  const b = e.target.closest('[data-dep]'); if (!b) return;
+  const i = PV.deposits.findIndex(d => d.id === b.dataset.dep); if (i < 0) return;
+  const gone = PV.deposits.splice(i, 1)[0];
+  PV.depDel[gone.id] = Date.now();
+  commit(); renderSavings();
+  toast('Aporte removido.', 'Desfazer', () => { PV.deposits.push(Object.assign({}, gone, {id: uid()})); PV.deposits.sort(byAt); commit(); renderSavings(); });
+});
+
+/* ---------- Inicio: proximos passos (primeiros itens pendentes da checklist) ---------- */
+function renderNext(){
+  const items = [];
+  ['dinheiro', 'docs', 'mala'].forEach(g => SH.checklist[g].forEach(t => { if (!t.done && items.length < 3) items.push([g, t]); }));
+  $('#nextList').innerHTML = items.length ? items.map(p =>
+    '<div class="task"><label><input type="checkbox" data-g="' + p[0] + '" data-id="' + esc(p[1].id) + '"><span class="check"></span><span>' + esc(p[1].text) + '</span></label></div>').join('')
+    : '<p class="empty">Checklist completa. Boa viagem!</p>';
+}
+$('#nextList').addEventListener('change', e => {
+  const t = (SH.checklist[e.target.dataset.g] || []).find(x => x.id === e.target.dataset.id); if (!t) return;
+  t.done = true; t.t = Date.now();
+  commit();
+  setTimeout(renderChecklist, 450);
+});
+$('#nextAll').addEventListener('click', () => goTab('checklist'));
 const showSaved = bindNum('#inpSaved', () => mine().saved, v => { setMine({saved: v}); renderSavings(); renderBudget(); }, v => nf(v, 0));
 const showMonthly = bindNum('#inpMonthly', () => mine().monthly, v => { setMine({monthly: v}); renderSavings(); }, v => nf(v, 0));
 const showMeta = bindNum('#inpMeta', () => mine().meta, v => { setMine({meta: v}); renderSavings(); renderBudget(); }, v => nf(v, 0));
@@ -1332,81 +1501,134 @@ function renderConverter(){
 function renderMoney(){ renderRate(); showFx(); showBRL(); renderConverter(); renderSavings(); renderBudget(); }
 
 /* ---------- Gastos ---------- */
-let payerSel = 'nana', scopeSel = 'shared';
-bindSeg($('#payerSeg'), 'payer', v => { payerSel = v; });
-bindSeg($('#scopeSeg'), 'scope', v => { scopeSel = v; $('#payerWrap').hidden = v === 'mine'; });
+let payerSel = 'nana', scopeSel = 'shared', curSel = 'eur', expEdit = null;
+const todayIso = () => { const d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+const isoOf = ts => { const d = new Date(ts); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+$('#expCat').innerHTML = Object.keys(CATS).map(k => '<option value="' + k + '">' + CATS[k] + '</option>').join('');
+$('#expCat').value = 'outros';
+$('#expDate').value = todayIso();
+function showSplit(){ $('#payerWrap').hidden = scopeSel === 'mine'; $('#splitWrap').hidden = payerSel === 'ambas'; }
+bindSeg($('#payerSeg'), 'payer', v => { payerSel = v; showSplit(); });
+bindSeg($('#scopeSeg'), 'scope', v => { scopeSel = v; showSplit(); });
+bindSeg($('#curSeg'), 'cur', v => { curSel = v; $('#expEur').placeholder = v === 'brl' ? 'Valor em reais' : 'Valor em euros'; });
+$('#expEur').placeholder = 'Valor em euros';
+/* Quanto cada uma deve do gasto: a parte da Nana e "split" por cento; a da Dani e o resto. */
+const shareOf = (e, w) => e.eur * (w === 'nana' ? e.split : 100 - e.split) / 100;
 function settlement(){
-  let nana = 0, dani = 0;
+  let bal = 0; /* positivo: Dani deve para a Nana */
   SH.expenses.forEach(e => {
-    if (e.payer === 'nana') nana += e.eur;
-    else if (e.payer === 'dani') dani += e.eur;
-    else { nana += e.eur / 2; dani += e.eur / 2; }
+    if (e.payer === 'nana') bal += e.eur - shareOf(e, 'nana');
+    else if (e.payer === 'dani') bal -= shareOf(e, 'nana');
   });
-  return {nana: nana, dani: dani, owe: Math.abs(nana - dani) / 2, debtor: nana > dani ? 'dani' : 'nana'};
+  return {owe: Math.abs(bal), debtor: bal > 0 ? 'dani' : 'nana'};
 }
 function settleText(){
   const s = settlement();
   if (s.owe < 0.005) return ['Tudo quitado', 'Ninguém deve nada.'];
   const cred = s.debtor === 'dani' ? 'nana' : 'dani';
-  return [WHO[s.debtor] + ' deve ' + eur(s.owe), 'para a ' + WHO[cred] + ', pelos gastos juntas.'];
+  return [WHO[s.debtor] + ' deve ' + eur(Math.round(s.owe * 100) / 100), 'para a ' + WHO[cred] + ', pelos gastos juntas.'];
 }
 function renderBudget(){
   const st = settleText(), quit = settlement().owe < 0.005;
   $('#settleTxt').textContent = st[0];
   $('#settleSub').textContent = st[1];
   $('#settleIcon').innerHTML = quit ? '<path d="M20 7L9.5 17.5 4 12"/>' : '<path d="M7 8h12l-3-3M17 16H5l3 3"/>';
-  const shared = SH.expenses.reduce((s, e) => s + e.eur, 0);
-  const personal = PV.expenses.reduce((s, e) => s + e.eur, 0);
-  const spent = shared / 2 + personal;
+  const byCat = {};
+  let spent = 0;
+  SH.expenses.forEach(e => { const v = shareOf(e, me()); byCat[e.cat] = (byCat[e.cat] || 0) + v; spent += v; });
+  PV.expenses.forEach(e => { byCat[e.cat] = (byCat[e.cat] || 0) + e.eur; spent += e.eur; });
   const budget = mine().meta / fx();
-  $('#bMine').textContent = eur(spent);
+  $('#bMine').textContent = eur(Math.round(spent * 100) / 100);
   $('#bBudget').textContent = eur(Math.round(budget));
   $('#bFill').style.width = (budget > 0 ? Math.min(100, spent / budget * 100) : 0) + '%';
-  $('#bShared').textContent = eur(shared);
-  $('#bPersonal').textContent = eur(personal);
+  $('#catList').innerHTML = Object.keys(CATS).filter(k => byCat[k] > 0.004).sort((x, y) => byCat[y] - byCat[x]).map(k =>
+    '<div class="row"><span>' + CATS[k] + '</span><b>' + eur(Math.round(byCat[k] * 100) / 100) + '</b></div>').join('');
   const visible = SH.expenses.concat(PV.expenses).sort((x, y) => y.at - x.at);
   $('#expEmpty').hidden = visible.length > 0;
+  $('#expHint').hidden = visible.length === 0;
   $('#expenseList').innerHTML = visible.map(e => {
-    const who = e.scope === 'mine' ? 'Só meu' : e.payer === 'ambas' ? 'Meio a meio' : WHO[e.payer] + ' pagou';
-    return '<div class="expense"><div><b>' + esc(e.desc) + '</b><small>' + who + DOT + new Date(e.at).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'}) + '</small></div>' +
-      '<span class="eur">' + eur(e.eur) + '</span>' +
+    let who = e.scope === 'mine' ? 'Só meu' : e.payer === 'ambas' ? 'Cada uma pagou a sua' : WHO[e.payer] + ' pagou';
+    if (e.scope !== 'mine' && e.split !== 50) who += ' (Nana ' + e.split + '%)';
+    return '<div class="expense"><button type="button" class="exp-open" data-edit="' + esc(e.id) + '" data-scope="' + e.scope + '" aria-label="Editar ' + esc(e.desc) + '">' +
+      '<span><b>' + esc(e.desc) + '</b><small>' + who + DOT + CATS[e.cat] + DOT + new Date(e.at).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'}) + '</small></span>' +
+      '<span class="eur">' + eur(e.eur) + '</span></button>' +
       '<button type="button" class="del" data-del="' + esc(e.id) + '" data-scope="' + e.scope + '" aria-label="Remover ' + esc(e.desc) + '">' + X_SVG + '</button></div>';
   }).join('');
 }
+function resetExpForm(){
+  expEdit = null;
+  $('#expDesc').value = ''; $('#expEur').value = ''; $('#expSplit').value = '50';
+  $('#expDate').value = todayIso(); $('#expCat').value = 'outros';
+  curSel = 'eur'; setSeg($('#curSeg'), 'cur', 'eur'); $('#expEur').placeholder = 'Valor em euros';
+  $('#expFormTitle').textContent = 'Novo gasto';
+  $('#expSubmit').textContent = 'Adicionar gasto';
+  $('#expCancel').hidden = true;
+  $$('#scopeSeg button').forEach(b => { b.disabled = false; });
+}
+$('#expCancel').addEventListener('click', resetExpForm);
 $('#expForm').addEventListener('submit', e => {
   e.preventDefault();
-  const desc = $('#expDesc').value.trim(), value = parseNum($('#expEur').value);
+  const desc = $('#expDesc').value.trim(), raw = parseNum($('#expEur').value);
   if (!desc){ $('#expDesc').focus(); toast('Descreva o gasto.'); return; }
-  if (value <= 0){ $('#expEur').focus(); toast('Digite o valor em euros.'); return; }
-  const item = {id: uid(), desc: desc.slice(0, 80), eur: Math.round(value * 100) / 100, payer: scopeSel === 'mine' ? me() : payerSel, scope: scopeSel, at: Date.now()};
-  (scopeSel === 'mine' ? PV : SH).expenses.push(item);
+  if (raw <= 0){ $('#expEur').focus(); toast('Digite o valor.'); return; }
+  const value = Math.round((curSel === 'brl' ? raw / fx() : raw) * 100) / 100;
+  const dateIso = /^\d{4}-\d{2}-\d{2}$/.test($('#expDate').value) ? $('#expDate').value : todayIso();
+  const box = scopeSel === 'mine' ? PV : SH;
+  const old = expEdit ? box.expenses.find(x => x.id === expEdit.id) : null;
+  const at = old && isoOf(old.at) === dateIso ? old.at : (dateIso === todayIso() ? Date.now() : atNoon(dateIso).getTime() + (Date.now() % 60000));
+  const split = payerSel === 'ambas' ? 50 : Math.min(100, Math.max(0, Math.round(parseNum($('#expSplit').value))));
+  const item = {id: old ? old.id : uid(), desc: desc.slice(0, 80), eur: value, payer: scopeSel === 'mine' ? me() : payerSel, scope: scopeSel,
+    cat: $('#expCat').value, split: scopeSel === 'mine' ? 50 : split, at: at, t: Date.now()};
+  if (old) box.expenses[box.expenses.indexOf(old)] = item; else box.expenses.push(item);
+  box.expenses.sort(byAt);
   commit();
-  $('#expDesc').value = ''; $('#expEur').value = '';
+  const wasEdit = !!old, converted = curSel === 'brl';
+  resetExpForm();
   if (document.activeElement) document.activeElement.blur();
   renderBudget();
-  toast(scopeSel === 'mine' ? 'Gasto adicionado. Só você vê.' : 'Gasto adicionado.');
+  toast(wasEdit ? 'Gasto atualizado.' : converted ? 'Gasto adicionado: ' + eur(value) + '.' : scopeSel === 'mine' ? 'Gasto adicionado. Só você vê.' : 'Gasto adicionado.');
 });
 $('#expDesc').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); $('#expEur').focus(); } });
 $('#expenseList').addEventListener('click', e => {
+  const open = e.target.closest('[data-edit]');
+  if (open){
+    const box = open.dataset.scope === 'mine' ? PV : SH, it = box.expenses.find(x => x.id === open.dataset.edit); if (!it) return;
+    expEdit = {id: it.id};
+    $('#expDesc').value = it.desc; $('#expEur').value = nf(it.eur, 2);
+    curSel = 'eur'; setSeg($('#curSeg'), 'cur', 'eur'); $('#expEur').placeholder = 'Valor em euros';
+    $('#expCat').value = it.cat; $('#expDate').value = isoOf(it.at); $('#expSplit').value = String(it.split);
+    scopeSel = it.scope; setSeg($('#scopeSeg'), 'scope', scopeSel);
+    $$('#scopeSeg button').forEach(b => { b.disabled = true; });
+    if (it.scope !== 'mine'){ payerSel = it.payer; setSeg($('#payerSeg'), 'payer', payerSel); }
+    showSplit();
+    $('#expFormTitle').textContent = 'Editar gasto';
+    $('#expSubmit').textContent = 'Salvar alterações';
+    $('#expCancel').hidden = false;
+    $('#expForm').scrollIntoView({block: 'start'});
+    return;
+  }
   const btn = e.target.closest('[data-del]'); if (!btn) return;
   const box = btn.dataset.scope === 'mine' ? PV : SH;
   const i = box.expenses.findIndex(x => x.id === btn.dataset.del); if (i < 0) return;
   const gone = box.expenses.splice(i, 1)[0];
   box.expDel[gone.id] = Date.now();
+  if (expEdit && expEdit.id === gone.id) resetExpForm();
   commit(); renderBudget();
   toast('Gasto removido.', 'Desfazer', () => {
-    (gone.scope === 'mine' ? PV : SH).expenses.push(Object.assign({}, gone, {id: uid()}));
+    const b2 = gone.scope === 'mine' ? PV : SH;
+    b2.expenses.push(Object.assign({}, gone, {id: uid(), t: Date.now()})); b2.expenses.sort(byAt);
     commit(); renderBudget();
   });
 });
-
 /* ---------- Roteiro ---------- */
+let itinEditing = false;
+const PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-10.5a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.2"/></svg>';
 function fit(el){ el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; }
 function fitAll(){ $$('#itinerary textarea').forEach(fit); }
 function renderItinerary(){
   const host = $('#itinerary'), start = atNoon(SH.start.v), rows = SH.itinerary;
   const act = document.activeElement;
-  if (host.contains(act) && act.tagName === 'TEXTAREA'){
+  if (host.contains(act) && act.tagName === 'TEXTAREA' && $$('.day', host).length === rows.length){
     /* Ela esta digitando: atualiza so os outros campos, sem tirar o cursor. */
     $$('textarea', host).forEach(t => {
       const r = rows[+t.dataset.i]; if (!r || t === act) return;
@@ -1425,12 +1647,38 @@ function renderItinerary(){
         '<button type="button" class="day-date" data-done="' + i + '" aria-pressed="' + (r.done ? 'true' : 'false') + '" aria-label="Dia ' + (i + 1) + ', ' + ddmm(d) + ': marcar como feito">' +
           '<span class="dd">' + ddmm(d) + '</span><span class="dw">' + esc(wkShort(d)) + '</span><span class="ck"></span></button>' +
         '<div><textarea rows="1" class="t" data-i="' + i + '" data-k="title" maxlength="120" aria-label="Plano do dia ' + (i + 1) + '" placeholder="Plano do dia">' + esc(r.title) + '</textarea>' +
-        '<textarea rows="1" class="n" data-i="' + i + '" data-k="note" maxlength="200" aria-label="Anotações do dia ' + (i + 1) + '" placeholder="Anotações">' + esc(r.note) + '</textarea></div></div>';
+        '<textarea rows="1" class="n" data-i="' + i + '" data-k="note" maxlength="200" aria-label="Anotações do dia ' + (i + 1) + '" placeholder="Anotações">' + esc(r.note) + '</textarea>' +
+        (r.place ? '<button type="button" class="place-chip" data-place="' + i + '" aria-label="Ver ' + esc(r.place.name) + ' no mapa">' + PIN_SVG + '<span>' + esc(r.place.name) + '</span></button>' : '') +
+        (itinEditing ? '<div class="row-tools">' +
+          '<button type="button" data-up="' + i + '"' + (i === 0 ? ' disabled' : '') + '>Subir</button>' +
+          '<button type="button" data-down="' + i + '"' + (i === rows.length - 1 ? ' disabled' : '') + '>Descer</button>' +
+          (r.place ? '<button type="button" data-unplace="' + i + '">Tirar do mapa</button>' : '') + '</div>' : '') +
+        '</div></div>';
     }
     html += '</div></section>';
   }
+  if (itinEditing) html += '<div class="form-gap" style="margin-bottom:12px"><button type="button" class="btn soft" data-addday>Adicionar um dia no fim</button>' +
+    '<button type="button" class="btn plain" data-delday' + (rows.length <= 1 ? ' disabled' : '') + '>Remover o último dia</button></div>';
   host.innerHTML = html;
   fitAll();
+  refreshPins();
+}
+function redrawItinerary(){
+  if (document.activeElement && $('#itinerary').contains(document.activeElement)) document.activeElement.blur();
+  renderItinerary(); renderCountdown(); renderDiaryPicker();
+}
+$('#itinEditBtn').addEventListener('click', () => {
+  itinEditing = !itinEditing;
+  $('#itinEditBtn').textContent = itinEditing ? 'Concluir' : 'Editar';
+  $('#itinHint').textContent = itinEditing ? 'Mude a ordem dos dias, tire lugares do mapa ou ajuste o tamanho da viagem.' : 'Toque na data de um dia para marcá-lo como feito.';
+  redrawItinerary();
+});
+/* Trocar dois dias de lugar e trocar o conteudo deles; as datas ficam onde estao. */
+function swapDays(i, j){
+  const a = SH.itinerary[i], b = SH.itinerary[j], now = Date.now(); if (!a || !b) return;
+  ['title', 'note', 'done', 'place'].forEach(k => { const v = a[k]; a[k] = b[k]; b[k] = v; });
+  [a, b].forEach(r => { r.tt = r.tn = r.td = r.tp = now; });
+  commit(); redrawItinerary();
 }
 $('#itinerary').addEventListener('input', e => {
   const t = e.target, r = SH.itinerary[+t.dataset.i]; if (!r || !t.dataset.k) return;
@@ -1440,48 +1688,83 @@ $('#itinerary').addEventListener('input', e => {
   fit(t); commit();
 });
 $('#itinerary').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'TEXTAREA'){ e.preventDefault(); e.target.blur(); } });
-$('#itinerary').addEventListener('click', e => {
-  const b = e.target.closest('[data-done]'); if (!b) return;
-  const r = SH.itinerary[+b.dataset.done]; if (!r) return;
-  r.done = !r.done; r.td = Date.now();
-  b.closest('.day').classList.toggle('done', r.done);
-  b.setAttribute('aria-pressed', r.done ? 'true' : 'false');
-  commit();
+$('#itinerary').addEventListener('click', async e => {
+  const hit = sel => e.target.closest(sel);
+  let b;
+  if ((b = hit('[data-done]'))){
+    const r = SH.itinerary[+b.dataset.done]; if (!r) return;
+    r.done = !r.done; r.td = Date.now();
+    b.closest('.day').classList.toggle('done', r.done);
+    b.setAttribute('aria-pressed', r.done ? 'true' : 'false');
+    commit();
+  } else if ((b = hit('[data-up]'))) swapDays(+b.dataset.up, +b.dataset.up - 1);
+  else if ((b = hit('[data-down]'))) swapDays(+b.dataset.down, +b.dataset.down + 1);
+  else if ((b = hit('[data-unplace]'))){
+    const r = SH.itinerary[+b.dataset.unplace]; if (!r) return;
+    r.place = null; r.tp = Date.now();
+    commit(); redrawItinerary();
+  } else if ((b = hit('[data-place]'))){
+    const i = +b.dataset.place, r = SH.itinerary[i]; if (!r || !r.place) return;
+    $('#mapCard').scrollIntoView({block: 'start'});
+    await initMap();
+    selectPlace(Object.assign({d: i + 1}, r.place), true);
+  } else if (hit('[data-addday]')){
+    if (SH.itinerary.length >= 60) return;
+    SH.itinerary.push(emptyRow());
+    SH.days = {v: SH.itinerary.length, t: Date.now()};
+    commit(); redrawItinerary();
+    toast('Dia ' + SH.itinerary.length + ' adicionado.');
+  } else if (hit('[data-delday]')){
+    if (SH.itinerary.length <= 1) return;
+    const gone = SH.itinerary.pop();
+    SH.days = {v: SH.itinerary.length, t: Date.now()};
+    commit(); redrawItinerary();
+    toast('Último dia removido.', 'Desfazer', () => {
+      const now = Date.now();
+      SH.itinerary.push(Object.assign({}, gone, {tt: now, tn: now, td: now, tp: now}));
+      SH.days = {v: SH.itinerary.length, t: now};
+      commit(); redrawItinerary();
+    });
+  }
 });
 $('#inpStart').addEventListener('change', e => {
   const v = e.target.value;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v)){ e.target.value = SH.start.v; return; }
   SH.start = {v: v, t: Date.now()};
-  commit(); renderCountdown(); renderSavings(); renderItinerary(); renderDiaryPicker();
+  commit(); renderCountdown(); renderSavings(); redrawItinerary();
 });
 
-/* ---------- Mapa (MapLibre, carregado so ao abrir o Roteiro) ---------- */
-const PLACES = [
-  {d: 1, name: 'Valletta', lat: 35.8989, lon: 14.5146},
-  {d: 3, name: 'Mdina e Rabat', lat: 35.8860, lon: 14.4025},
-  {d: 4, name: 'Comino e Blue Lagoon', lat: 36.0136, lon: 14.3232},
-  {d: 6, name: 'Victoria, Gozo', lat: 36.0444, lon: 14.2398},
-  {d: 7, name: 'Ramla Bay', lat: 36.0614, lon: 14.2844},
-  {d: 8, name: 'Sliema', lat: 35.9125, lon: 14.5019},
-  {d: 9, name: 'Marsaxlokk', lat: 35.8412, lon: 14.5443},
-  {d: 10, name: 'Hagar Qim', lat: 35.8276, lon: 14.4420},
-  {d: 11, name: 'St Peter’s Pool', lat: 35.8328, lon: 14.5628},
-  {d: 13, name: 'Senglea e Birgu', lat: 35.8878, lon: 14.5221},
-  {d: 15, name: 'Golden Bay', lat: 35.9341, lon: 14.3447}
-];
+/* ---------- Mapa (MapLibre, carregado so ao abrir o Roteiro). Os pins vem do roteiro. ---------- */
 const MAP_BOUNDS = [[14.17, 35.79], [14.59, 36.09]];
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 const MAPLIBRE = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl';
-let mapObj = null, mapLoading = null, mapSel = PLACES[0], selMarker = null, popup = null;
+let mapObj = null, mapLoading = null, mapSel = null, selMarker = null, popup = null, markers = [];
+function defaultSel(){
+  const i = SH.itinerary.findIndex(r => r.place);
+  return i > -1 ? Object.assign({d: i + 1}, SH.itinerary[i].place) : {name: 'Valletta', lat: 35.8989, lon: 14.5146};
+}
 function loadMapLib(){
   if (window.maplibregl) return Promise.resolve();
   if (mapLoading) return mapLoading;
   mapLoading = new Promise((res, rej) => {
-    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = MAPLIBRE + '.css'; document.head.appendChild(css);
-    const s = document.createElement('script'); s.src = MAPLIBRE + '.js';
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = MAPLIBRE + '.css'; css.integrity = SRI.maplibreCss; css.crossOrigin = 'anonymous'; document.head.appendChild(css);
+    const s = document.createElement('script'); s.src = MAPLIBRE + '.js'; s.integrity = SRI.maplibreJs; s.crossOrigin = 'anonymous';
     s.onload = () => res(); s.onerror = () => { mapLoading = null; s.remove(); rej(new Error('cdn')); };
     document.head.appendChild(s);
   });
   return mapLoading;
+}
+function refreshPins(){
+  if (!mapObj) return;
+  markers.forEach(m => m.remove()); markers = [];
+  SH.itinerary.forEach((r, i) => {
+    if (!r.place) return;
+    const el = document.createElement('button');
+    el.type = 'button'; el.className = 'map-pin'; el.textContent = i + 1;
+    el.setAttribute('aria-label', 'Dia ' + (i + 1) + ': ' + r.place.name);
+    el.addEventListener('click', ev => { ev.stopPropagation(); selectPlace(Object.assign({d: i + 1}, r.place), false); });
+    markers.push(new maplibregl.Marker({element: el}).setLngLat([r.place.lon, r.place.lat]).addTo(mapObj));
+  });
 }
 async function initMap(){
   if (mapObj){ mapObj.resize(); return; }
@@ -1489,7 +1772,7 @@ async function initMap(){
     await loadMapLib();
     if (mapObj) return;
     mapObj = new maplibregl.Map({
-      container: 'map', style: 'https://tiles.openfreemap.org/styles/positron',
+      container: 'map', style: MAP_STYLE,
       bounds: MAP_BOUNDS, fitBoundsOptions: {padding: 24},
       attributionControl: {compact: true}, cooperativeGestures: true,
       locale: {
@@ -1499,14 +1782,8 @@ async function initMap(){
       }
     });
     mapObj.addControl(new maplibregl.NavigationControl({showCompass: false}), 'top-right');
-    PLACES.forEach(p => {
-      const el = document.createElement('button');
-      el.type = 'button'; el.className = 'map-pin'; el.textContent = p.d;
-      el.setAttribute('aria-label', 'Dia ' + p.d + ': ' + p.name);
-      el.addEventListener('click', ev => { ev.stopPropagation(); selectPlace(p, false); });
-      new maplibregl.Marker({element: el}).setLngLat([p.lon, p.lat]).addTo(mapObj);
-    });
-    $('#mapNote').textContent = 'Toque num pin para escolher o destino.';
+    refreshPins();
+    $('#mapNote').textContent = 'Os pins são os lugares de cada dia do roteiro.';
     mapObj.once('load', () => {
       const attrib = $('#map .maplibregl-ctrl-attrib');
       if (attrib){ attrib.classList.remove('maplibregl-compact-show'); attrib.removeAttribute('open'); }
@@ -1518,6 +1795,12 @@ async function initMap(){
 function selectPlace(p, fly){
   mapSel = p;
   $('#mapNav').textContent = 'Rotas até ' + p.name;
+  $('#placeSave').hidden = !!p.d;
+  if (!p.d){
+    const start = atNoon(SH.start.v), free = SH.itinerary.findIndex(r => !r.place);
+    $('#placeDay').innerHTML = SH.itinerary.map((r, i) => '<option value="' + i + '">Dia ' + (i + 1) + DOT + ddmm(addDays(start, i)) + (r.place ? ' (troca ' + esc(r.place.name) + ')' : '') + '</option>').join('');
+    $('#placeDay').value = String(free > -1 ? free : 0);
+  }
   if (!mapObj) return;
   if (popup) popup.remove();
   if (selMarker){ selMarker.remove(); selMarker = null; }
@@ -1526,6 +1809,13 @@ function selectPlace(p, fly){
     .setHTML('<b>' + esc(p.name) + '</b>' + (p.d ? '<br>Dia ' + p.d + ' do roteiro' : '')).addTo(mapObj);
   if (fly) mapObj.flyTo({center: [p.lon, p.lat], zoom: 13});
 }
+$('#placeSaveBtn').addEventListener('click', () => {
+  const i = +$('#placeDay').value, r = SH.itinerary[i], p = mapSel; if (!r || !p || p.d) return;
+  r.place = {name: p.name, lat: p.lat, lon: p.lon}; r.tp = Date.now();
+  commit(); redrawItinerary();
+  selectPlace(Object.assign({d: i + 1}, r.place), false);
+  toast(p.name + ' salvo no dia ' + (i + 1) + '.');
+});
 $('#mapForm').addEventListener('submit', async e => {
   e.preventDefault();
   const q = $('#mapQ').value.trim(), res = $('#placeRes');
@@ -1552,11 +1842,62 @@ $('#mapPins').addEventListener('click', async () => {
   if (mapObj){ if (popup) popup.remove(); mapObj.fitBounds(MAP_BOUNDS, {padding: 24}); }
 });
 $('#mapNav').addEventListener('click', () => {
-  const p = mapSel, ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const p = mapSel || defaultSel(), ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const url = ios ? 'https://maps.apple.com/?daddr=' + p.lat + ',' + p.lon + '&dirflg=r'
                   : 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lon;
   window.open(url, '_blank', 'noopener');
 });
+/* Baixa os pedacos do mapa da ilha (zoom 8 a 14) para o cache do service worker. */
+const tileX = (lon, z) => Math.floor((lon + 180) / 360 * Math.pow(2, z));
+const tileY = (lat, z) => { const r = lat * Math.PI / 180; return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * Math.pow(2, z)); };
+async function mapOfflineUrls(){
+  const style = await fetchJson(MAP_STYLE), urls = [MAP_STYLE];
+  for (const key of Object.keys(style.sources || {})){
+    const src = style.sources[key];
+    if (src.type !== 'vector') continue;
+    let tiles = src.tiles, zMax = src.maxzoom;
+    if (!tiles && src.url){ urls.push(src.url); const tj = await fetchJson(src.url); tiles = tj.tiles; zMax = tj.maxzoom; }
+    if (!tiles || !tiles[0]) continue;
+    for (let z = 8; z <= Math.min(14, zMax == null ? 14 : zMax); z++){
+      const x0 = tileX(MAP_BOUNDS[0][0], z), x1 = tileX(MAP_BOUNDS[1][0], z), y0 = tileY(MAP_BOUNDS[1][1], z), y1 = tileY(MAP_BOUNDS[0][1], z);
+      for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) urls.push(tiles[0].replace('{z}', z).replace('{x}', x).replace('{y}', y));
+    }
+  }
+  if (style.glyphs){
+    const fonts = {};
+    (style.layers || []).forEach(l => { const f = l.layout && l.layout['text-font']; if (Array.isArray(f)) fonts[f.join(',')] = 1; });
+    Object.keys(fonts).forEach(f => ['0-255', '256-511'].forEach(r => urls.push(style.glyphs.replace('{fontstack}', encodeURIComponent(f)).replace('{range}', r))));
+  }
+  if (typeof style.sprite === 'string') ['.json', '.png', '@2x.json', '@2x.png'].forEach(s => urls.push(style.sprite + s));
+  return urls;
+}
+$('#mapOffline').addEventListener('click', async () => {
+  const btn = $('#mapOffline');
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller){ toast('Feche e abra o app de novo e tente outra vez.'); return; }
+  btn.disabled = true;
+  try {
+    const urls = await mapOfflineUrls();
+    let done = 0, failed = 0, next = 0;
+    const worker = async () => {
+      while (next < urls.length){
+        const u = urls[next++];
+        try { await fetch(u); } catch (e) { failed++; }
+        done++;
+        if (done % 10 === 0 || done === urls.length) btn.textContent = 'Baixando o mapa… ' + Math.round(done / urls.length * 100) + '%';
+      }
+    };
+    await Promise.all([1, 2, 3, 4, 5, 6].map(worker));
+    if (failed > urls.length * 0.1) throw new Error('rede');
+    prefs.mapOffline = Date.now(); savePrefs();
+    toast('Mapa da ilha salvo para usar sem internet.');
+  } catch (e) { toast('Não deu para baixar tudo. Tente de novo com Wi-Fi.'); }
+  btn.disabled = false;
+  renderMapOffline();
+});
+function renderMapOffline(){
+  $('#mapOffline').textContent = prefs.mapOffline ? 'Atualizar o mapa salvo (baixado em ' + new Date(prefs.mapOffline).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}) + ')' : 'Baixar o mapa para usar sem internet';
+}
+renderMapOffline();
 
 /* ---------- Diario: cada uma escreve a sua anotacao do dia; as duas leem as duas ---------- */
 let diaryIdx = 0, photoUrls = [], photoRender = 0;
@@ -1614,21 +1955,21 @@ $('#photoGrid').addEventListener('click', e => {
   const id = b.dataset.ph, i = SH.photos.findIndex(p => p.id === id); if (i < 0) return;
   SH.photos.splice(i, 1);
   SH.phDel[id] = Date.now();
-  prefs.pendingUp = prefs.pendingUp.filter(x => x !== id); savePrefs();
+  prefs.pendingUp = prefs.pendingUp.filter(x => x.id !== id); savePrefs();
   blobDel(id);
   if (cloudReady()) sb.storage.from(CONFIG.bucket).remove([CONFIG.trip + '/' + id + '.jpg']).catch(() => {});
   commit(); renderPhotos();
 });
-function compressPhoto(file){
+function compressPhoto(file, maxSide, quality){
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file), img = new Image();
     img.onload = () => {
-      const max = 1280, k = Math.min(1, max / Math.max(img.width, img.height));
+      const max = maxSide || 1280, k = Math.min(1, max / Math.max(img.width, img.height));
       const c = document.createElement('canvas');
       c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       URL.revokeObjectURL(url);
-      c.toBlob(b => b ? resolve(b) : reject(new Error('blob')), 'image/jpeg', 0.78);
+      c.toBlob(b => b ? resolve(b) : reject(new Error('blob')), 'image/jpeg', quality || 0.78);
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')); };
     img.src = url;
@@ -1664,6 +2005,7 @@ function renderChecklist(){
   $('#ckPct').textContent = Math.round(pct * 100) + '%';
   $('#ckCount').textContent = done + ' de ' + all.length + ' feitos';
   $('#ckText').textContent = CHECK_LABEL[groupSel] + ': ' + tasks.filter(t => t.done).length + ' de ' + tasks.length;
+  renderNext();
 }
 $('#taskList').addEventListener('change', e => {
   const t = SH.checklist[groupSel].find(x => x.id === e.target.dataset.id); if (!t) return;
@@ -1741,7 +2083,7 @@ function exportPdf(){
   SH.itinerary.forEach((r, i) => {
     h += '<tr><td>' + ddmm(addDays(start, i)) + '</td><td>' + (i + 1) + (r.done ? ' (feito)' : '') + '</td><td>' + esc(r.title) + '</td><td class="obs">' + esc(r.note) + '</td></tr>';
   });
-  h += '</tbody></table><h2>Gastos juntas</h2><div class="resumo"><div>Total <b>' + eur(shared) + '</b></div><div>Cada uma <b>' + eur(shared / 2) + '</b></div><div>Acerto <b>' + esc(st[0]) + '</b></div></div>';
+  h += '</tbody></table><h2>Gastos juntas</h2><div class="resumo"><div>Total <b>' + eur(shared) + '</b></div><div>Acerto <b>' + esc(st[0]) + '</b></div></div>';
   if (SH.expenses.length){
     h += '<table><thead><tr><th>Data</th><th>Descrição</th><th>Quem pagou</th><th>Valor</th></tr></thead><tbody>';
     SH.expenses.forEach(e => { h += '<tr><td>' + new Date(e.at).toLocaleDateString('pt-BR') + '</td><td>' + esc(e.desc) + '</td><td>' + (e.payer === 'ambas' ? 'Meio a meio' : WHO[e.payer]) + '</td><td>' + eur(e.eur) + '</td></tr>'; });
@@ -1751,6 +2093,172 @@ function exportPdf(){
   window.print();
 }
 $('#btnPdf').addEventListener('click', exportPdf);
+
+/* ---------- Paineis (sheets) genericos ---------- */
+function openPanel(el){ el.classList.add('open'); document.body.classList.add('noscroll'); }
+function closePanel(el){ el.classList.remove('open'); if (!$('.sheet.open')) document.body.classList.remove('noscroll'); }
+
+/* ---------- Reservas e documentos ---------- */
+const KIND_ICON = {
+  voo: '<path d="M3 13.5 21 6l-4.5 13-3.5-5.5z"/><path d="M13 13.5 21 6"/>',
+  hospedagem: '<path d="M3 18v-7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v7M3 15h18M7 9V7h10v2"/>',
+  transporte: '<rect x="5" y="4" width="14" height="13" rx="3"/><path d="M5 11h14M8.5 20l1.5-3M15.5 20 14 17"/>',
+  passeio: '<circle cx="12" cy="12" r="8.5"/><path d="m14.8 9.2-1.6 4-4 1.6 1.6-4z"/>',
+  seguro: '<path d="M12 3 5 6v5.5c0 4.2 3 7.6 7 9.5 4-1.9 7-5.3 7-9.5V6z"/><path d="m9 12 2.2 2.2L15 10.5"/>',
+  documento: '<rect x="5" y="3.5" width="14" height="17" rx="2"/><circle cx="12" cy="10" r="2.5"/><path d="M8.5 16.5c.8-1.6 6.2-1.6 7 0"/>',
+  outro: '<path d="M6 3.5h9l3 3v14H6z"/><path d="M9 11h6M9 15h6"/>'
+};
+const kindSvg = k => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (KIND_ICON[k] || KIND_ICON.outro) + '</svg>';
+const docPath = (scope, id) => (scope === 'mine' ? (prefs.uid || 'local') : 'shared') + '/' + id;
+let resEdit = null, resScope = 'shared';
+$('#resKind').innerHTML = Object.keys(KINDS).map(k => '<option value="' + k + '">' + KINDS[k] + '</option>').join('');
+bindSeg($('#resScope'), 'scope', v => { resScope = v; });
+function renderRes(){
+  const list = SH.res.concat(PV.res).sort((x, y) => (x.when || '9999').localeCompare(y.when || '9999') || x.at - y.at);
+  $('#resEmpty').hidden = list.length > 0;
+  $('#resList').innerHTML = list.map(r => {
+    const bits = [KINDS[r.kind]];
+    if (r.code) bits.push(r.code);
+    if (r.when) bits.push(atNoon(r.when).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'}));
+    if (r.files.length) bits.push(r.files.length === 1 ? '1 anexo' : r.files.length + ' anexos');
+    if (r.scope === 'mine') bits.push('Só meu');
+    return '<button type="button" class="resrow" data-res="' + esc(r.id) + '" data-scope="' + r.scope + '">' + kindSvg(r.kind) +
+      '<span><b>' + esc(r.title) + '</b><small>' + esc(bits.join(DOT)) + '</small></span>' +
+      '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>';
+  }).join('');
+}
+function renderResFiles(){
+  $('#resFiles').innerHTML = resEdit.files.map(f =>
+    '<div class="expense"><button type="button" class="exp-open" data-file="' + esc(f.id) + '"><span><b>' + esc(f.name) + '</b><small>' + (f.type === 'application/pdf' ? 'PDF' : 'Foto') + DOT + 'toque para abrir</small></span></button>' +
+    '<button type="button" class="del" data-unfile="' + esc(f.id) + '" aria-label="Remover ' + esc(f.name) + '">' + X_SVG + '</button></div>').join('');
+}
+function openRes(item){
+  resEdit = item ? {id: item.id, scope: item.scope, at: item.at, files: item.files.slice(), added: [], isNew: false}
+                 : {id: uid(), scope: 'shared', at: Date.now(), files: [], added: [], isNew: true};
+  resScope = resEdit.scope; setSeg($('#resScope'), 'scope', resScope);
+  $$('#resScope button').forEach(b => { b.disabled = !resEdit.isNew; });
+  $('#resTitle').textContent = item ? 'Editar' : 'Nova reserva';
+  $('#resKind').value = item ? item.kind : 'voo';
+  $('#resName').value = item ? item.title : '';
+  $('#resCode').value = item ? item.code : '';
+  $('#resWhen').value = item ? item.when : '';
+  $('#resDetail').value = item ? item.detail : '';
+  $('#resDelete').hidden = !item;
+  $('#resCopy').hidden = !(item && item.code);
+  renderResFiles();
+  openPanel($('#resSheet'));
+}
+function closeRes(save){
+  if (resEdit && !save) resEdit.added.forEach(f => blobDel(f.id));
+  resEdit = null;
+  closePanel($('#resSheet'));
+}
+$('#resAdd').addEventListener('click', () => openRes(null));
+$('#resList').addEventListener('click', e => {
+  const b = e.target.closest('[data-res]'); if (!b) return;
+  const it = (b.dataset.scope === 'mine' ? PV : SH).res.find(r => r.id === b.dataset.res);
+  if (it) openRes(it);
+});
+$$('#resSheet [data-close]').forEach(b => b.addEventListener('click', () => closeRes(false)));
+$('#resAttach').addEventListener('click', () => $('#resPick').click());
+$('#resPick').addEventListener('change', async e => {
+  const files = Array.from(e.target.files || []); e.target.value = '';
+  if (!resEdit) return;
+  for (const f of files){
+    if (resEdit.files.length >= 6){ toast('Limite de 6 anexos.'); break; }
+    try {
+      const pdf = f.type === 'application/pdf';
+      if (pdf && f.size > 5 * 1024 * 1024){ toast('PDF grande demais (máximo 5 MB).'); continue; }
+      if (!pdf && f.type.indexOf('image/') !== 0){ toast('Só foto ou PDF.'); continue; }
+      const blob = pdf ? f : await compressPhoto(f, 2000, 0.85);
+      const meta = {id: uid(), name: (f.name || (pdf ? 'Documento.pdf' : 'Foto')).slice(0, 60), type: pdf ? 'application/pdf' : 'image/jpeg'};
+      await blobPut(meta.id, blob);
+      resEdit.files.push(meta); resEdit.added.push(meta);
+    } catch (err) { toast('Não deu para ler esse arquivo.'); }
+  }
+  renderResFiles();
+});
+async function fileBlob(scope, f){
+  let blob = await blobGet(f.id);
+  if (!blob && cloudReady()){
+    try { const r = await sb.storage.from(CONFIG.docsBucket).download(docPath(scope, f.id)); if (r.data){ blob = r.data; await blobPut(f.id, blob); } } catch (e) {}
+  }
+  return blob;
+}
+let viewerUrl = null;
+function closeViewer(){ $('#viewer').hidden = true; if (viewerUrl){ URL.revokeObjectURL(viewerUrl); viewerUrl = null; } }
+$('#viewerClose').addEventListener('click', closeViewer);
+$('#viewer').addEventListener('click', e => { if (e.target === $('#viewer')) closeViewer(); });
+$('#resFiles').addEventListener('click', async e => {
+  if (!resEdit) return;
+  const un = e.target.closest('[data-unfile]');
+  if (un){ resEdit.files = resEdit.files.filter(f => f.id !== un.dataset.unfile); renderResFiles(); return; }
+  const op = e.target.closest('[data-file]'); if (!op) return;
+  const f = resEdit.files.find(x => x.id === op.dataset.file); if (!f) return;
+  const blob = await fileBlob(resEdit.scope, f);
+  if (!blob){ toast('Esse anexo ainda não chegou neste aparelho. Tente com internet.'); return; }
+  if (f.type === 'application/pdf'){
+    const file = new File([blob], /\.pdf$/i.test(f.name) ? f.name : f.name + '.pdf', {type: 'application/pdf'});
+    try { if (navigator.canShare && navigator.canShare({files: [file]})){ await navigator.share({files: [file]}); return; } }
+    catch (err) { if (err && err.name === 'AbortError') return; }
+    const url = URL.createObjectURL(file);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return;
+  }
+  closeViewer();
+  viewerUrl = URL.createObjectURL(blob);
+  $('#viewerImg').src = viewerUrl;
+  $('#viewer').hidden = false;
+});
+$('#resCopy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('#resCode').value.trim()); toast('Código copiado.'); }
+  catch (e) { toast('Não deu para copiar. Selecione o código e copie.'); }
+});
+function dropResFiles(scope, files){
+  files.forEach(f => {
+    blobDel(f.id);
+    prefs.pendingUp = prefs.pendingUp.filter(x => x.id !== f.id);
+    if (cloudReady()) sb.storage.from(CONFIG.docsBucket).remove([docPath(scope, f.id)]).catch(() => {});
+  });
+  savePrefs();
+}
+$('#resForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!resEdit) return;
+  const title = $('#resName').value.trim();
+  if (!title){ $('#resName').focus(); toast('Dê um nome para encontrar depois.'); return; }
+  const scope = resEdit.isNew ? resScope : resEdit.scope, box = scope === 'mine' ? PV : SH;
+  const old = box.res.find(r => r.id === resEdit.id);
+  const item = {id: resEdit.id, kind: $('#resKind').value, title: title.slice(0, 80), code: $('#resCode').value.trim().slice(0, 40),
+    when: $('#resWhen').value, detail: $('#resDetail').value.trim().slice(0, 600), files: resEdit.files, scope: scope, at: resEdit.at, t: Date.now()};
+  if (old){
+    dropResFiles(scope, old.files.filter(f => !item.files.some(x => x.id === f.id)));
+    box.res[box.res.indexOf(old)] = item;
+  } else box.res.push(item);
+  resEdit.added.filter(f => item.files.some(x => x.id === f.id)).forEach(f => prefs.pendingUp.push({id: f.id, b: CONFIG.docsBucket, p: docPath(scope, f.id), ct: f.type}));
+  resEdit.added.filter(f => !item.files.some(x => x.id === f.id)).forEach(f => blobDel(f.id));
+  savePrefs(); commit(); renderRes();
+  closeRes(true);
+  toast(scope === 'mine' ? 'Salvo. Só você vê.' : 'Salvo.');
+});
+$('#resDelete').addEventListener('click', () => {
+  if (!resEdit) return;
+  const scope = resEdit.scope, box = scope === 'mine' ? PV : SH, i = box.res.findIndex(r => r.id === resEdit.id);
+  if (i < 0){ closeRes(false); return; }
+  if ($('#resDelete').dataset.armed !== '1'){
+    $('#resDelete').dataset.armed = '1'; $('#resDelete').textContent = 'Toque de novo para apagar';
+    setTimeout(() => { $('#resDelete').dataset.armed = ''; $('#resDelete').textContent = 'Apagar'; }, 4000);
+    return;
+  }
+  $('#resDelete').dataset.armed = ''; $('#resDelete').textContent = 'Apagar';
+  const gone = box.res.splice(i, 1)[0];
+  box.resDel[gone.id] = Date.now();
+  dropResFiles(scope, gone.files);
+  commit(); renderRes();
+  closeRes(true);
+  toast('Apagado.');
+});
 
 /* ---------- Conta (sheet) ---------- */
 const SYNC_ON = !!(CONFIG.supabaseUrl && CONFIG.supabaseKey);
@@ -1775,7 +2283,12 @@ function closeSheet(){
 $('#profileBtn').addEventListener('click', openSheet);
 $('#sheetClose').addEventListener('click', closeSheet);
 $('#sheetScrim').addEventListener('click', closeSheet);
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#sheet').classList.contains('open')) closeSheet(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('#viewer').hidden) closeViewer();
+  else if ($('#resSheet').classList.contains('open')) closeRes(false);
+  else if ($('#sheet').classList.contains('open')) closeSheet();
+});
 bindSeg($('#sheetWho'), 'who', v => {
   if (SYNC_ON) return;
   prefs.profile = Object.assign({}, prefs.profile, {who: v}); savePrefs();
@@ -1843,6 +2356,7 @@ function loadSupabase(){
   sbLoading = new Promise((res, rej) => {
     const s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+    s.integrity = SRI.supabase; s.crossOrigin = 'anonymous';
     s.onload = () => {
       try { sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey, {auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: true}}); res(sb); }
       catch (e) { rej(e); }
@@ -1898,7 +2412,7 @@ async function syncNow(){
     if (!cleanRemotePv || JSON.stringify(cleanRemotePv) !== JSON.stringify(outPv)){
       await pushRow('malta_private', {user_id: session.user.id, payload: outPv});
     }
-    await syncPhotos();
+    await syncFiles();
     prefs.lastSync = Date.now(); savePrefs();
     syncState = 'ok';
   } catch (e) {
@@ -1908,18 +2422,20 @@ async function syncNow(){
   if (syncAgain){ syncAgain = false; scheduleSync(); }
   else if (syncState === 'error') scheduleSync(20000);
 }
-async function syncPhotos(){
+/* Envia para a nuvem o que ainda esta so no aparelho (fotos do diario e anexos). */
+async function syncFiles(){
   const alive = {};
   SH.photos.forEach(p => { alive[p.id] = 1; });
-  for (const id of prefs.pendingUp.slice()){
-    if (alive[id]){
-      const blob = await blobGet(id);
+  SH.res.concat(PV.res).forEach(r => r.files.forEach(f => { alive[f.id] = 1; }));
+  for (const job of prefs.pendingUp.slice()){
+    if (alive[job.id]){
+      const blob = await blobGet(job.id);
       if (blob){
-        const r = await sb.storage.from(CONFIG.bucket).upload(CONFIG.trip + '/' + id + '.jpg', blob, {contentType: 'image/jpeg', upsert: true});
+        const r = await sb.storage.from(job.b).upload(job.p, blob, {contentType: job.ct, upsert: true});
         if (r.error) continue;
       }
     }
-    prefs.pendingUp = prefs.pendingUp.filter(x => x !== id);
+    prefs.pendingUp = prefs.pendingUp.filter(x => x.id !== job.id);
     savePrefs();
   }
   Object.keys(SH.phDel).forEach(id => { blobDel(id); });
@@ -2121,7 +2637,9 @@ function renderAll(){
   renderItinerary();
   renderChecklist();
   renderDiary();
-  if (payerSel !== 'ambas' && document.activeElement !== $('#expDesc') && document.activeElement !== $('#expEur')){ payerSel = me(); setSeg($('#payerSeg'), 'payer', payerSel); }
+  renderRes();
+  showSplit();
+  if (!expEdit && payerSel !== 'ambas' && document.activeElement !== $('#expDesc') && document.activeElement !== $('#expEur')){ payerSel = me(); setSeg($('#payerSeg'), 'payer', payerSel); }
 }
 loadState();
 initAuth();

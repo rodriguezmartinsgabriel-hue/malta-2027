@@ -2,12 +2,12 @@
    - Navegacao e arquivos do app: rede primeiro, cache como reserva (offline).
    - Fontes, MapLibre e tiles do mapa: cache primeiro.
    - APIs (clima, cotacao, busca) e Supabase: direto na rede, o app guarda o que precisa. */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL = 'malta2027-shell-' + VERSION;
 const ASSETS = 'malta2027-assets-' + VERSION;
 const SHELL_FILES = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const ASSET_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'unpkg.com', 'cdn.jsdelivr.net', 'tiles.openfreemap.org'];
-const ASSET_LIMIT = 500;
+const ASSET_LIMIT = 1500;
 
 self.addEventListener('install', event => {
   event.waitUntil(

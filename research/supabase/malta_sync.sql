@@ -25,3 +25,9 @@ create policy "malta_sync_allowed_rw" on public.malta_sync
 --   bucket privado storage "malta-diary"   fotos do diario; select/insert/update/delete so para membros
 --   malta_sync entrou na publication supabase_realtime
 -- Para trocar ou incluir um e-mail: update/insert em public.malta_members.
+
+-- 2026-11-09 (v4): migration "malta_docs_bucket".
+--   bucket privado storage "malta-docs" (jpeg, png, pdf; 5 MB) para reservas e documentos
+--   malta_private.can_use_doc(name): membro E (pasta "shared/" OU pasta "<auth.uid()>/")
+--   policies select/insert/update/delete em storage.objects usando can_use_doc
+-- O schema antigo do app nativo (tabelas abertas a anon) foi para _arquivo/ e NAO deve ser aplicado.
