@@ -53,7 +53,7 @@ struct SyncSheetView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.muted)
                     .padding(10)
-                    .background(Circle().fill(.white.opacity(0.10)))
+                    .background(Circle().fill(Theme.softStrong))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Fechar")
@@ -121,7 +121,7 @@ struct SyncSheetView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
-                .background(Capsule().fill(.white.opacity(0.10)))
+                .background(Capsule().fill(Theme.soft))
             }
             .buttonStyle(.plain)
             .disabled(busy)
@@ -184,7 +184,7 @@ struct SyncSheetView: View {
         .padding(.horizontal, 12)
         .background {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.07))
+                .fill(Theme.soft)
         }
     }
 

@@ -65,7 +65,7 @@ struct ItineraryView: View {
                            onNote: { store.itinerary[idx].note = $0 },
                            onDone: { store.itinerary[idx].done = $0 })
                     if idx != (start + days.count - 1) {
-                        Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5)
+                        Rectangle().fill(Theme.hairline).frame(height: 0.5)
                             .padding(.vertical, 4)
                     }
                 }

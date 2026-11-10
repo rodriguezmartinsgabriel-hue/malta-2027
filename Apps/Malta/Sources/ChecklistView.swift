@@ -38,7 +38,7 @@ struct ChecklistView: View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .stroke(.white.opacity(0.10), lineWidth: 8)
+                    .stroke(Theme.hairline, lineWidth: 8)
                 Circle()
                     .trim(from: 0, to: progressRatio)
                     .stroke(Theme.glowFill, style: StrokeStyle(lineWidth: 8, lineCap: .round))
@@ -96,7 +96,7 @@ struct ChecklistView: View {
                         Capsule().fill(Theme.wineFill)
                             .shadow(color: Theme.wine.opacity(0.5), radius: 8, y: 3)
                     } else {
-                        Capsule().fill(.white.opacity(0.08))
+                        Capsule().fill(Theme.soft)
                     }
                 }
                 .contentShape(Capsule())
@@ -111,7 +111,7 @@ struct ChecklistView: View {
                              onToggle: { store.toggleChecklistItem(item, group: group) },
                              onRemove: { store.removeChecklistItem(item, group: group) })
                 if item.id != items.last?.id {
-                    Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5)
+                    Rectangle().fill(Theme.hairline).frame(height: 0.5)
                         .padding(.vertical, 4)
                 }
             }
@@ -170,7 +170,7 @@ private struct ChecklistRow: View {
                     .font(.caption2)
                     .foregroundStyle(Theme.muted.opacity(0.7))
                     .padding(6)
-                    .background(Circle().fill(.white.opacity(0.09)))
+                    .background(Circle().fill(Theme.softStrong))
             }
             .buttonStyle(.plain)
             .opacity(item.done ? 1 : 0)

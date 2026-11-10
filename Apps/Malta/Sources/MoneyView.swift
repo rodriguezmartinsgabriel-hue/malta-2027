@@ -111,7 +111,7 @@ struct MoneyView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(Capsule().fill(.white.opacity(0.10)))
+                .background(Capsule().fill(Theme.soft))
             }
             .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 2) {
@@ -154,7 +154,7 @@ struct MoneyView: View {
                     }
                     .padding(.vertical, 3)
                     if row.id != accountRows.last?.id {
-                        Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5)
+                        Rectangle().fill(Theme.hairline).frame(height: 0.5)
                     }
                 }
             }

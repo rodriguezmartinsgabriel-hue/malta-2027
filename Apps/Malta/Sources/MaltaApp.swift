@@ -13,7 +13,7 @@ struct MaltaApp: App {
         WindowGroup {
             RootView()
                 .environment(store)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
                 .tint(Theme.wineBright)
         }
     }

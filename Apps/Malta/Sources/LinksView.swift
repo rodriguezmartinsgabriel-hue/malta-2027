@@ -45,7 +45,7 @@ struct LinksView: View {
                     }
                     .buttonStyle(.plain)
                     if link.id != usefulLinks.last?.id {
-                        Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5)
+                        Rectangle().fill(Theme.hairline).frame(height: 0.5)
                     }
                 }
             }

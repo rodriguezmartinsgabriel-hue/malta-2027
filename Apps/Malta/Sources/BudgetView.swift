@@ -94,7 +94,7 @@ struct BudgetView: View {
                 .padding(.horizontal, 12)
                 .background {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(.white.opacity(0.07))
+                        .fill(Theme.soft)
                 }
             RowField("Valor (EUR)", text: $eurTx)
             Picker("Pagou", selection: $payer) {
@@ -147,7 +147,7 @@ struct BudgetView: View {
                             store.removeExpense(id: e.id)
                         }
                         if e.id != store.expenses.first?.id {
-                            Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5)
+                            Rectangle().fill(Theme.hairline).frame(height: 0.5)
                                 .padding(.vertical, 6)
                         }
                     }
@@ -203,7 +203,7 @@ struct ExpenseRow: View {
                     .font(.caption2)
                     .foregroundStyle(Theme.muted)
                     .padding(6)
-                    .background(Circle().fill(.white.opacity(0.09)))
+                    .background(Circle().fill(Theme.softStrong))
             }
             .buttonStyle(.plain)
         }
