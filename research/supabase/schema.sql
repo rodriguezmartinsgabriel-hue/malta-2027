@@ -50,8 +50,8 @@ create table if not exists malta_sync (
 alter table malta_sync enable row level security;
 create policy "malta_sync_allowed_rw" on malta_sync
   for all to authenticated
-  using (lower(auth.jwt() ->> 'email') in ('nana@email.com', 'dani@email.com'))
-  with check (lower(auth.jwt() ->> 'email') in ('nana@email.com', 'dani@email.com'));
+  using (lower(auth.jwt() ->> 'email') in ('nataliacprestes@gmail.com', 'danielalimags@outlook.com'))
+  with check (lower(auth.jwt() ->> 'email') in ('nataliacprestes@gmail.com', 'danielalimags@outlook.com'));
 
 create index if not exists expenses_trip on expenses (trip_id);
 create index if not exists itinerary_trip on itinerary (trip_id, idx);
