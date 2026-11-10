@@ -67,6 +67,24 @@ python3 -m http.server 8000   # na raiz do repo
 # abrir http://localhost:8000
 ```
 
+## Login e onboarding (10/11/2026)
+
+Quem abre o link cai numa tela de onboarding: **"Quem é você? Nana / Dani"** + nome opcional. Isso identifica a pessoa em cada aparelho e grava o perfil local (localStorage).
+
+- **Com Supabase configurado** (URL + anon key preenchidos no sheet de sync): aparecem também **"Entrar com Google"** e **"Enviar link de acesso"** (e-mail mágico). O perfil é vinculado ao e-mail da conta.
+- **Sem Supabase configurado**: entra direto em modo local (perfil escolhido), e o sync continua 100% local até configurar.
+
+### Ativar o login (2 minutos, dono: Gabriel)
+
+1. Crie um projeto Supabase (gratis) — **um projeto novo, so da Malta** (nao reutilize o do Grude: a anon key da Malta vai para o repo publico).
+2. Rode `research/supabase/schema.sql` no SQL Editor.
+3. Em **Auth > Providers**: deixe **E-mail** ligado (magic link funciona sem configuracao extra). Para Google, ligue o provider Google e cole o Client ID/Secret.
+4. Em **Auth > URL Configuration**: coloque a URL do site no **Site URL** e adicione-a aos **Redirect URLs**.
+5. Em **Settings > API**, copie a **Project URL** e a **anon public key**.
+6. Abra o app em cada iPhone uma vez, toque no avatar (canto superior direito do Inicio), cole URL + anon key no card Supabase e salve. A partir daí, o login aparece e o sync liga.
+
+> A anon key fica no localStorage de cada aparelho (nao vai no repo de proposito). Se preferir embutir antes de publicar, preencha `window.MALTA_SUPABASE_URL` / `window.MALTA_SUPABASE_KEY` num `config.js` servido antes do app.
+
 ---
 
 # App nativo iOS (SwiftUI) — pausado (09/11/2026)
