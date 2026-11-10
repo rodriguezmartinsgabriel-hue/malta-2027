@@ -885,7 +885,7 @@ const CONFIG = {
   docsBucket: 'malta-docs',
   google: false
 };
-const APP_VERSION = '4.0.0';
+const APP_VERSION = '4.1.0';
 /* Integridade dos scripts externos: se o CDN servir outra coisa, o navegador recusa. */
 const SRI = {maplibreJs: 'sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj', maplibreCss: 'sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V', supabase: 'sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug'};
 
@@ -1277,11 +1277,12 @@ function idb(){
   if (idbP) return idbP;
   idbP = new Promise((res, rej) => {
     if (!window.indexedDB){ rej(new Error('idb')); return; }
-    const r = indexedDB.open('malta2027', 2);
+    const r = indexedDB.open('malta2027', 3);
     r.onupgradeneeded = () => {
       const db = r.result;
       if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos');
       if (!db.objectStoreNames.contains('ph')) db.createObjectStore('ph');
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
     };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
@@ -2333,7 +2334,7 @@ $('#backupFile').addEventListener('change', async e => {
 });
 function clearDevice(){
   try { Object.keys(localStorage).filter(k => k.indexOf(NS) === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {}
-  return Promise.all(['ph', 'photos'].map(s => idbReq(s, 'readwrite', st => st.clear()).catch(() => {})));
+  return Promise.all(['ph', 'photos', 'kv'].map(s => idbReq(s, 'readwrite', st => st.clear()).catch(() => {})));
 }
 let wipeArmed = 0;
 $('#wipeBtn').addEventListener('click', async () => {
@@ -2351,6 +2352,28 @@ $('#wipeBtn').addEventListener('click', async () => {
 /* ---------- Sync ---------- */
 let sb = null, sbLoading = null, session = null, syncTimer = null, syncBusy = false, syncAgain = false, syncState = 'idle', channel = null;
 const cloudReady = () => !!(SYNC_ON && sb && session && navigator.onLine !== false);
+/* A sessao fica em dois lugares do aparelho (localStorage e IndexedDB). Se o sistema limpar um, o outro devolve. */
+const AUTH_KEY = 'sb-' + CONFIG.supabaseUrl.replace(/^https?:\/\//, '').split('.')[0] + '-auth-token';
+const authStore = {
+  async getItem(k){
+    let v = null;
+    try { v = localStorage.getItem(k); } catch (e) {}
+    if (v !== null) return v;
+    try {
+      const b = await idbReq('kv', 'readonly', st => st.get(k));
+      if (typeof b === 'string'){ try { localStorage.setItem(k, b); } catch (e) {} return b; }
+    } catch (e) {}
+    return null;
+  },
+  async setItem(k, v){
+    try { localStorage.setItem(k, v); } catch (e) {}
+    try { await idbReq('kv', 'readwrite', st => st.put(v, k)); } catch (e) {}
+  },
+  async removeItem(k){
+    try { localStorage.removeItem(k); } catch (e) {}
+    try { await idbReq('kv', 'readwrite', st => st.delete(k)); } catch (e) {}
+  }
+};
 function loadSupabase(){
   if (sbLoading) return sbLoading;
   sbLoading = new Promise((res, rej) => {
@@ -2358,7 +2381,7 @@ function loadSupabase(){
     s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
     s.integrity = SRI.supabase; s.crossOrigin = 'anonymous';
     s.onload = () => {
-      try { sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey, {auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: true}}); res(sb); }
+      try { sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey, {auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: authStore}}); res(sb); }
       catch (e) { rej(e); }
     };
     s.onerror = () => { sbLoading = null; s.remove(); rej(new Error('cdn')); };
@@ -2479,16 +2502,16 @@ $('#logoutBtn').addEventListener('click', async () => {
   if (safe){ PV = freshPrivate(); prefs.uid = ''; saveLocal(); savePrefs(); }
   session = null; closeSheet(); showAuth('email');
 });
-window.addEventListener('online', () => { scheduleSync(300); refreshFx(); loadWeather(); });
+window.addEventListener('online', () => { scheduleSync(300); refreshFx(); loadWeather(); resumeSession(); });
 window.addEventListener('offline', () => { syncState = 'offline'; renderSyncUi(); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   renderCountdown(); refreshFx(); loadWeather();
-  if (SYNC_ON && session) syncNow();
+  if (SYNC_ON && session) syncNow(); else { resumeSession(); tryPending(); }
 });
 
 /* ---------- Onboarding / login ---------- */
-let whoSel = 'nana', recovering = false, authBusy = false;
+let whoSel = 'nana', recovering = false, authBusy = false, pendingCreds = null, pendingUntil = 0, watching = false, resumeBusy = false;
 bindSeg($('#whoSeg'), 'who', v => { whoSel = v; });
 function authMsg(t){ $('#authMsg').textContent = t || ''; }
 function showAuth(mode){
@@ -2501,6 +2524,7 @@ function showAuth(mode){
   $('#authLead').textContent = mode === 'email' ? 'Entre com o e-mail convidado para a viagem.'
     : mode === 'newpass' ? 'Escolha uma senha nova.'
     : 'Quem é você?';
+  if (mode === 'email' && !$('#authEmail').value && prefs.lastEmail) $('#authEmail').value = prefs.lastEmail;
   authMsg('');
 }
 function showApp(){
@@ -2529,6 +2553,9 @@ async function afterLogin(){
   if (!who){ showAuth('email'); authMsg('Sem conexão com o servidor. Tente de novo.'); return; }
   if (prefs.uid && prefs.uid !== session.user.id){ PV = freshPrivate(); saveLocal(); }
   prefs.uid = session.user.id;
+  prefs.lastEmail = session.user.email || prefs.lastEmail || '';
+  pendingCreds = null;
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
   prefs.profile = {who: who, name: prefs.profile && prefs.profile.who === who ? prefs.profile.name || '' : ''};
   savePrefs();
   showApp();
@@ -2578,7 +2605,10 @@ $('#btnSignup').addEventListener('click', () => {
     }
     if (r.data.session){ session = r.data.session; await afterLogin(); return; }
     const exists = r.data.user && Array.isArray(r.data.user.identities) && r.data.user.identities.length === 0;
-    authMsg(exists ? 'Esse e-mail já tem conta. Toque em Entrar.' : 'Enviamos um link de confirmação para ' + c.email + '. Toque nele e volte aqui para entrar.');
+    if (exists){ authMsg('Esse e-mail já tem conta. Toque em Entrar ou em Esqueci a senha.'); return; }
+    /* Ela confirma pelo link (que abre no Safari) e volta: o app entra sozinho, sem digitar de novo. */
+    pendingCreds = c; pendingUntil = Date.now() + 15 * 60000;
+    authMsg('Enviamos um link de confirmação para ' + c.email + '. Toque nele e volte para este app: a entrada é automática.');
   });
 });
 $('#btnForgot').addEventListener('click', () => {
@@ -2607,26 +2637,59 @@ $('#btnGoogle').addEventListener('click', async () => {
     if (r.error) throw r.error;
   } catch (err) { authMsg('Não deu para abrir o login do Google agora.'); }
 });
+function watchAuth(){
+  if (watching || !sb) return;
+  watching = true;
+  sb.auth.onAuthStateChange((evt, s) => {
+    const had = !!session; session = s;
+    if (evt === 'PASSWORD_RECOVERY'){ recovering = true; showAuth('newpass'); return; }
+    if (evt === 'SIGNED_OUT' && had && !$('#auth').classList.contains('show')){ showAuth('email'); authMsg('Sua sessão terminou. Entre de novo.'); return; }
+    if (s && !had && !recovering && !authBusy && $('#auth').classList.contains('show') && !$('#authEmailForm').hidden) afterLogin();
+  });
+}
+/* Abriu sem conseguir falar com o servidor: o app ja esta na tela com os dados do aparelho; aqui a sessao volta sozinha. */
+async function resumeSession(){
+  if (!SYNC_ON || session || resumeBusy || !prefs.uid || $('#auth').classList.contains('show')) return;
+  resumeBusy = true;
+  try {
+    await loadSupabase(); watchAuth();
+    const r = await sb.auth.getSession();
+    if (r.data && r.data.session){ session = r.data.session; listenRemote(); syncNow(); }
+    else if (!(await authStore.getItem(AUTH_KEY))){ showAuth('email'); authMsg('Sua sessão terminou. Entre de novo.'); }
+  } catch (e) {}
+  resumeBusy = false;
+}
+async function tryPending(){
+  if (!pendingCreds || authBusy || session || Date.now() > pendingUntil || document.visibilityState !== 'visible' || !sb) return;
+  authBusy = true;
+  try {
+    const r = await sb.auth.signInWithPassword(pendingCreds);
+    if (r.data && r.data.session){ session = r.data.session; $('#authPass').value = ''; await afterLogin(); }
+  } catch (e) {}
+  authBusy = false;
+}
+setInterval(() => { resumeSession(); tryPending(); }, 30000);
 async function initAuth(){
   if (!SYNC_ON){
     if (prefs.profile && WHO[prefs.profile.who]) showApp(); else showAuth('profile');
     return;
   }
+  let libFail = false;
   try {
-    await loadSupabase();
+    await loadSupabase(); watchAuth();
     const r = await sb.auth.getSession();
     session = r.data && r.data.session;
-    sb.auth.onAuthStateChange((evt, s) => {
-      const had = !!session; session = s;
-      if (evt === 'PASSWORD_RECOVERY'){ recovering = true; showAuth('newpass'); return; }
-      if (s && !had && !recovering && !authBusy && $('#auth').classList.contains('show') && !$('#authEmailForm').hidden) afterLogin();
-    });
-  } catch (e) {
-    /* Sem rede e sem a biblioteca em cache: quem ja entrou neste aparelho segue usando o que esta salvo. */
-    if (prefs.uid && prefs.profile){ showApp(); syncState = 'offline'; return; }
-  }
+  } catch (e) { libFail = true; }
   if (recovering) return;
-  if (session) await afterLogin(); else showAuth('email');
+  if (session){ await afterLogin(); return; }
+  /* Sem sessao ativa agora, mas ela ja entrou neste aparelho e a sessao segue guardada (a renovacao falhou por rede):
+     abre o app com os dados do aparelho em vez de pedir login de novo. So pede login se a sessao acabou de verdade. */
+  if (prefs.uid && prefs.profile && (libFail || await authStore.getItem(AUTH_KEY))){
+    showApp(); syncState = 'offline'; renderSyncUi();
+    setTimeout(resumeSession, 3000);
+    return;
+  }
+  showAuth('email');
 }
 
 /* ---------- Init ---------- */
